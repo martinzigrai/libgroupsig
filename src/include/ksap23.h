@@ -41,7 +41,7 @@ extern "C" {
  * @def GROUPSIG_ksap23_CODE
  * @brief ksap23 scheme code.
  */
-#define GROUPSIG_ksap23_CODE 5
+#define GROUPSIG_ksap23_CODE 42 //nezabudni na toto cislo ked to budes pouzivat (ja viem ze zabudnes)
 
 /**
  * @def GROUPSIG_ksap23_NAME

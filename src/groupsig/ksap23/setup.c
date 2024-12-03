@@ -15,7 +15,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- */\
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -119,8 +119,8 @@ int ksap23_setup(groupsig_key_t *grpkey,
       GOTOENDRC(IERROR, ksap23_setup);
     if(hash_finalize(h) == IERROR)
       GOTOENDRC(IERROR, ksap23_setup);
-    if(!(gkey->h = pbcext_element_G1_init()))
-      GOTOENDRC(IERROR, ksap23_setup);
+    /*if(!(gkey->h = pbcext_element_G1_init()))
+      GOTOENDRC(IERROR, ksap23_setup);*/
     if(pbcext_element_G1_from_hash(gkey->h,
 				   h->hash,
 				   h->length) == IERROR)

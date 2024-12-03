@@ -17,8 +17,8 @@
  * under the License.
  */
 
-#ifndef _ksap23_GRP_KEY_H
-#define _ksap23_GRP_KEY_H
+#ifndef _KSAP23_GRP_KEY_H
+#define _KSAP23_GRP_KEY_H
 
 #include <stdint.h>
 #include "types.h"
