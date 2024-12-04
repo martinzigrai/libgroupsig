@@ -39,8 +39,8 @@ typedef struct {
   pbcext_element_G2_t *gg; /**< Random generator of G2 */  
   pbcext_element_G2_t *XX; /**< gg^x (x is part of mgrkey) */
   pbcext_element_G2_t *YY; /**< gg^y (y is part of mgrkey) */
-  pbcext_element_G2_t *ZZ0; /**< gg^z0 (z0 is part of mgrkey) */
-  pbcext_element_G2_t *ZZ1;  /**< gg^z1 (z1 is part of mgrkey) */
+  pbcext_element_G1_t *ZZ0; /**< gg^z0 (z0 is part of mgrkey) */ //toto by malo byt D1
+  pbcext_element_G1_t *ZZ1;  /**< gg^z1 (z1 is part of mgrkey) */ //D2
   //hash_t *h; 
   pbcext_element_G1_t *h; /** h = H(g) */
 } ksap23_grp_key_t;

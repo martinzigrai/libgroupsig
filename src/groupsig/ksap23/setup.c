@@ -148,12 +148,12 @@ int ksap23_setup(groupsig_key_t *grpkey,
       GOTOENDRC(IERROR, ksap23_setup);       
 
     /* Finalize the group key with the Opener's public key */
-    if(!(gkey->ZZ0 = pbcext_element_G2_init())) GOTOENDRC(IERROR, ksap23_setup);
-    if(pbcext_element_G2_mul(gkey->ZZ0, gkey->gg, mkey->z0) == IERROR)
+    if(!(gkey->ZZ0 = pbcext_element_G1_init())) GOTOENDRC(IERROR, ksap23_setup);
+    if(pbcext_element_G1_mul(gkey->ZZ0, gkey->gg, mkey->z0) == IERROR)
       GOTOENDRC(IERROR, ksap23_setup);
 
-    if(!(gkey->ZZ1 = pbcext_element_G2_init())) GOTOENDRC(IERROR, ksap23_setup);
-    if(pbcext_element_G2_mul(gkey->ZZ1, gkey->gg, mkey->z1) == IERROR)
+    if(!(gkey->ZZ1 = pbcext_element_G1_init())) GOTOENDRC(IERROR, ksap23_setup);
+    if(pbcext_element_G1_mul(gkey->ZZ1, gkey->gg, mkey->z1) == IERROR)
       GOTOENDRC(IERROR, ksap23_setup);      
 
   }
@@ -177,8 +177,8 @@ int ksap23_setup(groupsig_key_t *grpkey,
     
     if (mkey->z0) { pbcext_element_Fr_free(mkey->z0); mkey->z0 = NULL; }
     if (mkey->z1) { pbcext_element_Fr_free(mkey->z1); mkey->z1 = NULL; }    
-    if (gkey->ZZ0) { pbcext_element_G2_free(gkey->ZZ0); gkey->ZZ0 = NULL; }
-    if (gkey->ZZ1) { pbcext_element_G2_free(gkey->ZZ1); gkey->ZZ1 = NULL; }
+    if (gkey->ZZ0) { pbcext_element_G1_free(gkey->ZZ0); gkey->ZZ0 = NULL; }
+    if (gkey->ZZ1) { pbcext_element_G1_free(gkey->ZZ1); gkey->ZZ1 = NULL; }
     
   }
 
