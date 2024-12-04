@@ -130,11 +130,11 @@ int ksap23_grp_key_copy(groupsig_key_t *dst, groupsig_key_t *src) {
     GOTOENDRC(IERROR, ksap23_grp_key_copy);
   if(!(ksap23_dst->ZZ0 = pbcext_element_G2_init()))
     GOTOENDRC(IERROR, ksap23_grp_key_copy);  
-  if(pbcext_element_G2_set(ksap23_dst->ZZ0, ksap23_src->ZZ0) == IERROR)
+  if(pbcext_element_G1_set(ksap23_dst->ZZ0, ksap23_src->ZZ0) == IERROR)
     GOTOENDRC(IERROR, ksap23_grp_key_copy);
   if(!(ksap23_dst->ZZ1 = pbcext_element_G2_init()))
     GOTOENDRC(IERROR, ksap23_grp_key_copy);  
-  if(pbcext_element_G2_set(ksap23_dst->ZZ1, ksap23_src->ZZ1) == IERROR)
+  if(pbcext_element_G1_set(ksap23_dst->ZZ1, ksap23_src->ZZ1) == IERROR)
     GOTOENDRC(IERROR, ksap23_grp_key_copy);
   if(!(ksap23_dst->h = pbcext_element_G1_init()))
     GOTOENDRC(IERROR, ksap23_grp_key_copy);
@@ -151,8 +151,8 @@ int ksap23_grp_key_copy(groupsig_key_t *dst, groupsig_key_t *src) {
     if (ksap23_dst->gg) { pbcext_element_G2_free(ksap23_dst->gg); ksap23_dst->gg = NULL; }
     if (ksap23_dst->XX) { pbcext_element_G2_free(ksap23_dst->XX); ksap23_dst->XX = NULL; }
     if (ksap23_dst->YY) { pbcext_element_G2_free(ksap23_dst->YY); ksap23_dst->YY = NULL; }
-    if (ksap23_dst->ZZ0) { pbcext_element_G2_free(ksap23_dst->ZZ0); ksap23_dst->ZZ0 = NULL; }
-    if (ksap23_dst->ZZ1) { pbcext_element_G2_free(ksap23_dst->ZZ1); ksap23_dst->ZZ1 = NULL; }
+    if (ksap23_dst->ZZ0) { pbcext_element_G1_free(ksap23_dst->ZZ0); ksap23_dst->ZZ0 = NULL; }
+    if (ksap23_dst->ZZ1) { pbcext_element_G1_free(ksap23_dst->ZZ1); ksap23_dst->ZZ1 = NULL; }
     if (ksap23_dst->h) { pbcext_element_G1_free(ksap23_dst->h); ksap23_dst->h = NULL; }
 
   }
@@ -179,8 +179,8 @@ int ksap23_grp_key_get_size(groupsig_key_t *key) {
   if(pbcext_element_G2_byte_size(&sgg) == IERROR) return -1;
   if(pbcext_element_G2_byte_size(&sXX) == IERROR) return -1;
   if(pbcext_element_G2_byte_size(&sYY) == IERROR) return -1;
-  if(pbcext_element_G2_byte_size(&sZZ0) == IERROR) return -1;
-  if(pbcext_element_G2_byte_size(&sZZ1) == IERROR) return -1;
+  if(pbcext_element_G1_byte_size(&sZZ0) == IERROR) return -1;
+  if(pbcext_element_G1_byte_size(&sZZ1) == IERROR) return -1;
   if(pbcext_element_G1_byte_size(&sh) == IERROR) return -1;  
 
   size64 = sizeof(uint8_t)*2 + sizeof(int)*6 + sg + sgg + sXX + sYY + sZZ0 + sZZ1 + sh;
@@ -364,16 +364,16 @@ groupsig_key_t* ksap23_grp_key_import(byte_t *source, uint32_t size) {
   ctr += len;
 
   /* Get ZZ0 */
-  if(!(ksap23_key->ZZ0 = pbcext_element_G2_init()))
+  if(!(ksap23_key->ZZ0 = pbcext_element_G1_init()))
     GOTOENDRC(IERROR, ksap23_grp_key_import);
-  if(pbcext_get_element_G2_bytes(ksap23_key->ZZ0, &len, &source[ctr]) == IERROR)
+  if(pbcext_get_element_G1_bytes(ksap23_key->ZZ0, &len, &source[ctr]) == IERROR)
     GOTOENDRC(IERROR, ksap23_grp_key_import);
   ctr += len;  
 
   /* Get ZZ1 */
-  if(!(ksap23_key->ZZ1 = pbcext_element_G2_init()))
+  if(!(ksap23_key->ZZ1 = pbcext_element_G1_init()))
     GOTOENDRC(IERROR, ksap23_grp_key_import);
-  if(pbcext_get_element_G2_bytes(ksap23_key->ZZ1, &len, &source[ctr]) == IERROR)
+  if(pbcext_get_element_G1_bytes(ksap23_key->ZZ1, &len, &source[ctr]) == IERROR)
     GOTOENDRC(IERROR, ksap23_grp_key_import);
   ctr += len;  
 

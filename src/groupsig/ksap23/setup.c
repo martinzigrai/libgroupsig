@@ -149,11 +149,11 @@ int ksap23_setup(groupsig_key_t *grpkey,
 
     /* Finalize the group key with the Opener's public key */
     if(!(gkey->ZZ0 = pbcext_element_G1_init())) GOTOENDRC(IERROR, ksap23_setup);
-    if(pbcext_element_G1_mul(gkey->ZZ0, gkey->gg, mkey->z0) == IERROR)
+    if(pbcext_element_G1_mul(gkey->ZZ0, gkey->g, mkey->z0) == IERROR)
       GOTOENDRC(IERROR, ksap23_setup);
 
     if(!(gkey->ZZ1 = pbcext_element_G1_init())) GOTOENDRC(IERROR, ksap23_setup);
-    if(pbcext_element_G1_mul(gkey->ZZ1, gkey->gg, mkey->z1) == IERROR)
+    if(pbcext_element_G1_mul(gkey->ZZ1, gkey->g, mkey->z1) == IERROR)
       GOTOENDRC(IERROR, ksap23_setup);      
 
   }
