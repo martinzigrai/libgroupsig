@@ -52,7 +52,8 @@ int ksap23_sign(groupsig_signature_t *sig,
   ksap23_sig = sig->sig;
   ksap23_grpkey = grpkey->key;
   ksap23_memkey = memkey->key;
-  r = s = D1s = D2s = NULL;
+  r = s = NULL;
+  D1s = D2s = NULL;
   rc = IOK;
 
   /* Randomize u, v and w */

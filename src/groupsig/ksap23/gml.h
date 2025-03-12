@@ -28,16 +28,14 @@
 
 /** 
  * @struct ksap23_gml_entry_data_t
- * @brief Data stored in ksap23 GML entries.
+ * @brief Data stored in grp_key.hksap23 GML entries.
  */
 typedef struct {
   pbcext_element_G1_t *f1;
-  pbcext_element_G2_t *f2;
-  pbcext_element_G2_t *u;
-  pbcext_element_G2_t *w;
-  
+  pbcext_element_G1_t *f2;
+  pbcext_element_G1_t *u;
+  pbcext_element_G1_t *w;
   //nezabudni na dôkaz Pi a sigma DS (strana 21. 1 join 4 bod)
-
 } ksap23_gml_entry_data_t;  
 
 /*  pbcext_element_G2_t *SS0;

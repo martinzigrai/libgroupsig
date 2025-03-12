@@ -36,6 +36,7 @@ static const groupsig_t *GROUPSIG_REGISTERED_GROUPSIGS[GROUPSIG_REGISTERED_GROUP
   &gl19_groupsig_bundle,
   &ps16_groupsig_bundle,
   &klap20_groupsig_bundle,
+  &ksap23_groupsig_bundle,
   &dl21_groupsig_bundle,
   &dl21seq_groupsig_bundle,  
 };

@@ -159,13 +159,13 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
       GOTOENDRC(IERROR, ksap23_join_mem);
     len += f2len;
 
-    if(pbcext_dump_element_G2_bytes(&bu,
+    if(pbcext_dump_element_G1_bytes(&bu,
 				    &ulen,
 				    ksap23_memkey->u) == IERROR) 
       GOTOENDRC(IERROR, ksap23_join_mem);
     len += ulen;
 
-    if(pbcext_dump_element_G2_bytes(&bw,
+    if(pbcext_dump_element_G1_bytes(&bw,
 				    &wlen,
 				    ksap23_memkey->w) == IERROR) 
       GOTOENDRC(IERROR, ksap23_join_mem);
@@ -249,11 +249,11 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
 	ksap23_memkey->alpha = NULL;
       }
       if (ksap23_memkey->f1) {
-	pbcext_element_Fr_free(ksap23_memkey->f1);
+	pbcext_element_G1_free(ksap23_memkey->f1);
 	ksap23_memkey->f1 = NULL;
       }
       if (ksap23_memkey->f2) {
-	pbcext_element_Fr_free(ksap23_memkey->f2);
+	pbcext_element_G1_free(ksap23_memkey->f2);
 	ksap23_memkey->f2 = NULL;
       }
       if (ksap23_memkey->u) {

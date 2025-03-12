@@ -27,6 +27,7 @@
 #include "groupsig/gl19/grp_key.h"
 #include "groupsig/ps16/grp_key.h"
 #include "groupsig/klap20/grp_key.h"
+#include "groupsig/ksap23/grp_key.h"
 #include "groupsig/dl21/grp_key.h"
 #include "groupsig/dl21seq/grp_key.h"
 
@@ -38,7 +39,7 @@ extern "C" {
  * @def GROUPSIG_GRP_KEY_HANDLES_N
  * @brief Number of supported group key implementations.
  */
-#define GROUPSIG_GRP_KEY_HANDLES_N 6
+#define GROUPSIG_GRP_KEY_HANDLES_N 7
 
 /**
  * @var GROUPSIG_GRP_KEY_HANDLES
@@ -51,6 +52,7 @@ static const grp_key_handle_t *GROUPSIG_GRP_KEY_HANDLES[GROUPSIG_GRP_KEY_HANDLES
   &gl19_grp_key_handle,
   &ps16_grp_key_handle,
   &klap20_grp_key_handle,
+  &ksap23_grp_key_handle,
   &dl21_grp_key_handle,
   &dl21seq_grp_key_handle,
 };

@@ -84,8 +84,8 @@ int ksap23_grp_key_free(groupsig_key_t *key) {
     if(ksap23_key->gg) { pbcext_element_G2_free(ksap23_key->gg); ksap23_key->gg = NULL; }
     if(ksap23_key->XX) { pbcext_element_G2_free(ksap23_key->XX); ksap23_key->XX = NULL; }
     if(ksap23_key->YY) { pbcext_element_G2_free(ksap23_key->YY); ksap23_key->YY = NULL; }
-    if(ksap23_key->ZZ0) { pbcext_element_G2_free(ksap23_key->ZZ0); ksap23_key->ZZ0 = NULL; }
-    if(ksap23_key->ZZ1) { pbcext_element_G2_free(ksap23_key->ZZ1); ksap23_key->ZZ1 = NULL; }
+    if(ksap23_key->ZZ0) { pbcext_element_G1_free(ksap23_key->ZZ0); ksap23_key->ZZ0 = NULL; }
+    if(ksap23_key->ZZ1) { pbcext_element_G1_free(ksap23_key->ZZ1); ksap23_key->ZZ1 = NULL; }
     if(ksap23_key->h) { pbcext_element_G1_free(ksap23_key->h); ksap23_key->h = NULL; }    
     mem_free(key->key); key->key = NULL;
   }
@@ -128,11 +128,11 @@ int ksap23_grp_key_copy(groupsig_key_t *dst, groupsig_key_t *src) {
     GOTOENDRC(IERROR, ksap23_grp_key_copy);  
   if(pbcext_element_G2_set(ksap23_dst->YY, ksap23_src->YY) == IERROR)
     GOTOENDRC(IERROR, ksap23_grp_key_copy);
-  if(!(ksap23_dst->ZZ0 = pbcext_element_G2_init()))
+  if(!(ksap23_dst->ZZ0 = pbcext_element_G1_init()))
     GOTOENDRC(IERROR, ksap23_grp_key_copy);  
   if(pbcext_element_G1_set(ksap23_dst->ZZ0, ksap23_src->ZZ0) == IERROR)
     GOTOENDRC(IERROR, ksap23_grp_key_copy);
-  if(!(ksap23_dst->ZZ1 = pbcext_element_G2_init()))
+  if(!(ksap23_dst->ZZ1 = pbcext_element_G1_init()))
     GOTOENDRC(IERROR, ksap23_grp_key_copy);  
   if(pbcext_element_G1_set(ksap23_dst->ZZ1, ksap23_src->ZZ1) == IERROR)
     GOTOENDRC(IERROR, ksap23_grp_key_copy);
@@ -254,13 +254,13 @@ int ksap23_grp_key_export(byte_t **bytes,
 
   /* Dump XX */
   __bytes = &_bytes[ctr];
-  if(pbcext_dump_element_G2_bytes(&__bytes, &len, ksap23_key->ZZ0) == IERROR)
+  if(pbcext_dump_element_G1_bytes(&__bytes, &len, ksap23_key->ZZ0) == IERROR)
     GOTOENDRC(IERROR, ksap23_grp_key_export);
   ctr += len;
 
   /* Dump YY */
   __bytes = &_bytes[ctr];  
-  if(pbcext_dump_element_G2_bytes(&__bytes, &len, ksap23_key->ZZ1) == IERROR)
+  if(pbcext_dump_element_G1_bytes(&__bytes, &len, ksap23_key->ZZ1) == IERROR)
     GOTOENDRC(IERROR, ksap23_grp_key_export);
   ctr += len;
 

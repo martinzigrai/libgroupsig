@@ -265,12 +265,12 @@ int ksap23_verify(uint8_t *ok,
  * 
  * @return IOK or IERROR.
  */
-int ksap23_verify_batch(uint8_t *ok,
+/*int ksap23_verify_batch(uint8_t *ok,
 			groupsig_signature_t **sigs,
 			message_t **msgs,
 			uint32_t n,
 			groupsig_key_t *grpkey);  
-
+*/
 /** 
  * @fn int ksap23_open(uint64_t *index, groupsig_proof_t *proof, crl_t *crl, 
  *                    groupsig_signature_t *sig, groupsig_key_t *grpkey, 
@@ -290,14 +290,14 @@ int ksap23_verify_batch(uint8_t *ok,
  * @return IOK if it was possible to open the signature. IFAIL if the open
  *  trapdoor was not found, IERROR otherwise.
  */
-int ksap23_open(uint64_t *index,
+/*int ksap23_open(uint64_t *index,
 		groupsig_proof_t *proof,
 		crl_t *crl,
 		groupsig_signature_t *sig,
 		groupsig_key_t *grpkey,
 		groupsig_key_t *mgrkey,
 		gml_t *gml);
-
+*/
 /** 
  * @fn int ksap23_open_verify(uint8_t *ok,
  *                          groupsig_proof_t *proof, 
@@ -313,11 +313,11 @@ int ksap23_open(uint64_t *index,
  * 
  * @return IOK or IERROR
  */
-int ksap23_open_verify(uint8_t *ok,
+/*int ksap23_open_verify(uint8_t *ok,
 		       groupsig_proof_t *proof, 
 		       groupsig_signature_t *sig,
 		       groupsig_key_t *grpkey);  
-  
+*/  
 /**
  * @var ksap23_groupsig_bundle
  * @brief The set of functions to manage ksap23 groups.
@@ -334,9 +334,9 @@ static const groupsig_t ksap23_groupsig_bundle = {
  join_mgr: &ksap23_join_mgr, /**< Executes manager-side joins. */
  sign: &ksap23_sign, /**< Issues ksap23 signatures. */
  verify: &ksap23_verify, /**< Verifies ksap23 signatures. */
- verify_batch: &ksap23_verify_batch, /**< Verifies batches of ksap23 signatures. */
- open: &ksap23_open, /**< Opens ksap23 signatures. */
- open_verify: &ksap23_open_verify, /**< ksap23 does not create proofs of opening. */
+ //verify_batch: &ksap23_verify_batch, /**< Verifies batches of ksap23 signatures. */
+ //open: &ksap23_open, /**< Opens ksap23 signatures. */
+ //open_verify: &ksap23_open_verify, /**< ksap23 does not create proofs of opening. */
  reveal: NULL, // &ksap23_reveal, /**< Reveals the tracing trapdoor from ksap23 signatures. */
  trace: NULL, // &ksap23_trace, /**< Traces the issuer of a signature. */ 
  claim: NULL, // &ksap23_claim, /**< Claims, in ZK, "ownership" of a signature. */
