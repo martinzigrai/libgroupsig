@@ -102,7 +102,7 @@ int ksap23_sign(groupsig_signature_t *sig,
 
 
   /* Compute signature of knowledge of alpha */ //toto prerobit na ksap NIZK
-  if (!(ksap23_sig->pi = spk_dlog_init()))
+  /*if (!(ksap23_sig->pi = spk_dlog_init()))
     GOTOENDRC(IERROR, ksap23_sign);
   if (spk_dlog_G1_sign(ksap23_sig->pi,
 		       ksap23_sig->ww,
@@ -110,7 +110,7 @@ int ksap23_sign(groupsig_signature_t *sig,
 		       ksap23_memkey->alpha,
 		       msg->bytes,
 		       msg->length) == IERROR)
-    GOTOENDRC(IERROR, ksap23_sign);
+    GOTOENDRC(IERROR, ksap23_sign);*/
   
 
  ksap23_sign_end:
@@ -143,10 +143,10 @@ int ksap23_sign(groupsig_signature_t *sig,
       pbcext_element_G1_free(ksap23_sig->c2);
       ksap23_sig->c2 = NULL;
     }
-    if (ksap23_sig->pi) {
+    /*if (ksap23_sig->pi) {
       spk_dlog_free(ksap23_sig->pi);
       ksap23_sig->pi = NULL;
-    }    
+    }    */
     
   }
   

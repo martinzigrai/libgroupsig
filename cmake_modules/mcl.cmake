@@ -3,6 +3,7 @@ set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/external)
 
 ExternalProject_Add(mclproject
   GIT_REPOSITORY https://github.com/herumi/mcl.git
+  GIT_TAG v2.13
   CMAKE_ARGS
   -DMCL_USE_GMP=OFF
   -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}

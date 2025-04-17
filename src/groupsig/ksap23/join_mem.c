@@ -60,9 +60,11 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
   //pbcext_element_G2_t *SS0, *SS1, *ff0, *ff1, *ggalpha, *ZZ0s0, *ZZ1s1;
   pbcext_element_GT_t *tau, *e1, *e2, *e3;  
   message_t *_mout;
-  byte_t *bn, *bw, *bu, *bpi, *bmsg, *bf1 ,*bf2; 
+  byte_t *bn, *bw, *bu, *bmsg, *bf1 ,*bf2;
+  //byte_t *bpi; 
   //void *y[6], *g[5];
-  uint64_t len, nlen, f1len, f2len, wlen, ulen, pilen, offset;
+  uint64_t len, nlen, f1len, f2len, wlen, ulen, offset;
+  //uint64_t pilen; //vsetko co suvisi s pi treba potom pridat
   int rc;
   uint16_t i[8][2], prods[6];  
   
@@ -79,7 +81,7 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
  
   tau = e1 = e2 = e3 = NULL;
   //pi = NULL;
-  bn = bf1 = bw = bf2 = bu = bmsg = bpi = NULL;
+  bn = bf1 = bw = bf2 = bu = bmsg = NULL; // bpi
   h = NULL;
   rc = IOK;
   
@@ -196,7 +198,7 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
     memcpy(&bmsg[offset], bf2, f2len); offset += f2len;
     memcpy(&bmsg[offset], bu, ulen); offset += ulen;
     memcpy(&bmsg[offset], bw, wlen); offset += wlen;
-    memcpy(&bmsg[offset], bpi, pilen); offset += pilen;
+    //memcpy(&bmsg[offset], bpi, pilen); offset += pilen;
 
     if(!*mout) {
       if(!(_mout = message_from_bytes(bmsg, len)))
@@ -296,7 +298,7 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
   //if (bSS1) { mem_free(bSS1); bSS1 = NULL; }  
   if (bf1) { mem_free(bf1); bf1 = NULL; }
   if (bf2) { mem_free(bf2); bf2 = NULL; }   
-  if (bpi) { mem_free(bpi); bpi = NULL; }
+  //if (bpi) { mem_free(bpi); bpi = NULL; }
   if (bmsg) { mem_free(bmsg); bmsg = NULL; }
   if (h) { hash_free(h); h = NULL; }
 
