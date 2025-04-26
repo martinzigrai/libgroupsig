@@ -149,7 +149,7 @@
                       ksap23_grpkey->ZZ1,
                       bsig,
                       slen ) == IERROR)
-      GOTOENDRC(IERROR, ksap23_join_mem);
+      GOTOENDRC(IERROR, ksap23_open);
      
     //moznost c1 
     /*ksap23_proof = proof->proof;

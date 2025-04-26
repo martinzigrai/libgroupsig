@@ -299,13 +299,13 @@ int ksap23_signature_export(byte_t **bytes,
 
   /* Dump pi->s1 */
   __bytes = &_bytes[ctr];
-  if(pbcext_dump_element_Fr_bytes(&__bytes, &len, ksap23_sig->pi->s1) == IERROR)
+  if(pbcext_dump_element_Fr_bytes(&__bytes, &len, ksap23_sig->pi->s[0]) == IERROR)
     GOTOENDRC(IERROR, ksap23_signature_export);
   ctr += len; 
 
   /* Dump pi->s2 */
   __bytes = &_bytes[ctr];
-  if(pbcext_dump_element_Fr_bytes(&__bytes, &len, ksap23_sig->pi->s2) == IERROR)
+  if(pbcext_dump_element_Fr_bytes(&__bytes, &len, ksap23_sig->pi->s[1]) == IERROR)
     GOTOENDRC(IERROR, ksap23_signature_export);
   ctr += len; 
 
@@ -416,16 +416,16 @@ groupsig_signature_t* ksap23_signature_import(byte_t *source, uint32_t size) {
   ctr += len;
 
   /* Get s1 */
-  if(!(ksap23_sig->pi->s1 = pbcext_element_Fr_init()))
+  if(!(ksap23_sig->pi->s[0] = pbcext_element_Fr_init()))
     GOTOENDRC(IERROR, ksap23_signature_import);
-  if(pbcext_get_element_Fr_bytes(ksap23_sig->pi->s1, &len, &source[ctr]) == IERROR)
+  if(pbcext_get_element_Fr_bytes(ksap23_sig->pi->s[0], &len, &source[ctr]) == IERROR)
     GOTOENDRC(IERROR, ksap23_signature_import);
   ctr += len;
 
   /* Get s2 */
-  if(!(ksap23_sig->pi->s2 = pbcext_element_Fr_init()))
+  if(!(ksap23_sig->pi->s[1] = pbcext_element_Fr_init()))
     GOTOENDRC(IERROR, ksap23_signature_import);
-  if(pbcext_get_element_Fr_bytes(ksap23_sig->pi->s2, &len, &source[ctr]) == IERROR)
+  if(pbcext_get_element_Fr_bytes(ksap23_sig->pi->s[1], &len, &source[ctr]) == IERROR)
     GOTOENDRC(IERROR, ksap23_signature_import);
   ctr += len;
 

@@ -38,7 +38,7 @@ typedef struct {
   pbcext_element_G1_t *c0;
   pbcext_element_G1_t *c1;
   pbcext_element_G1_t *c2;
-  //spk_dlog_t *pi;
+  spk_rep_t *pi;
 } ksap23_signature_t;
 
 /** 

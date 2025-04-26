@@ -162,7 +162,7 @@
   * @param[in] m_len Message length in bytes.
   * @return IOK on success, IERROR on failure.
   */
- int ksap23_nizk3_sign(spk_rep3_t *pi,
+ int ksap23_nizk3_sign(spk_rep_t *pi,
                        pbcext_element_Fr_t *d1,
                        pbcext_element_Fr_t *d2,
                        pbcext_element_G1_t *g,
@@ -194,7 +194,7 @@
   * @return IOK on success, IERROR on failure.
   */
  int ksap23_nizk3_verify(uint8_t *ok,
-                         spk_rep3_t *pi,
+                         spk_rep_t *pi,
                          pbcext_element_G1_t *g,
                          pbcext_element_G1_t *c0,
                          pbcext_element_G1_t *c1,

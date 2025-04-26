@@ -502,12 +502,32 @@ gml_entry_t* ksap23_gml_entry_import(byte_t *bytes, uint32_t size) {
     return NULL;
   }
 
-  if (spk_dlog_export(ksap23_data->pi,
+  if (!(ksap23_data->pi->c = pbcext_element_Fr_init())) {
+    ksap23_gml_entry_free(entry); entry = NULL;
+    return NULL;
+  }
+  if (pbcext_get_element_Fr_bytes(ksap23_data->pi->c, &len, &bytes[offset]) == IERROR) {
+    ksap23_gml_entry_free(entry); 
+    return NULL;
+  }
+  offset += len;
+
+  if (!(ksap23_data->pi->s[0] = pbcext_element_Fr_init())) {
+    ksap23_gml_entry_free(entry); entry = NULL;
+    return NULL;
+  }
+  if (pbcext_get_element_Fr_bytes(ksap23_data->pi->s[0], &len, &bytes[offset]) == IERROR) {
+    ksap23_gml_entry_free(entry); 
+    return NULL;
+  }
+  offset += len;
+
+  /*if (spk_rep_import(ksap23_data->pi,
 				  &len,
 				  &bytes[offset]) == IERROR) {
     ksap23_gml_entry_free(entry); entry = NULL;
     return NULL;    
-  }
+  }*/
 
   if (!len) {
     ksap23_gml_entry_free(entry); entry = NULL;

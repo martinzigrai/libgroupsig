@@ -28,7 +28,7 @@
  #include "sys/mem.h"
  #include "shim/pbc_ext.h"
  #include "ksap23.h"
- #include "groupsig/ksap23/spk.h"
+ //#include "groupsig/ksap23/spk.h"
  #include "groupsig/ksap23/nizk.h"
  #include "groupsig/ksap23/proof.h"
 
@@ -130,14 +130,34 @@ int ksap23_proof_export(byte_t **bytes,
   code = GROUPSIG_ksap23_CODE;
   _bytes[ctr++] = code;
 
-  if(ksap23_proof->pi){
+  /* Dump pi->c */
+  if(ksap23_proof->pi->c){
     __bytes = &_bytes[ctr];
-    if(spk_rep_export(&__bytes, &len, ksap23_proof->pi) == IERROR) 
+    if(pbcext_dump_element_Fr_bytes(&__bytes, &len, ksap23_proof->pi->c) == IERROR) 
       GOTOENDRC(IERROR, ksap23_proof_export);
     ctr += len;
 
   } else {ctr += sizeof(int); }
 
+  /* Dump pi->s1 */
+  if(ksap23_proof->pi->s[0]){
+    __bytes = &_bytes[ctr];
+    if(pbcext_dump_element_Fr_bytes(&__bytes, &len, ksap23_proof->pi->s[0]) == IERROR) 
+      GOTOENDRC(IERROR, ksap23_proof_export);
+    ctr += len;
+
+  } else {ctr += sizeof(int); }
+
+  /* Dump pi->s2 */
+  if(ksap23_proof->pi->s[1]){
+    __bytes = &_bytes[ctr];
+    if(pbcext_dump_element_Fr_bytes(&__bytes, &len, ksap23_proof->pi->s[1]) == IERROR) 
+      GOTOENDRC(IERROR, ksap23_proof_export);
+    ctr += len;
+
+  } else {ctr += sizeof(int); }
+
+  /* Dump f1 */
   if(ksap23_proof->f1){
     __bytes = &_bytes[ctr];
     if(pbcext_dump_element_G1_bytes(&__bytes, &len, ksap23_proof->f1) == IERROR) 
@@ -146,6 +166,7 @@ int ksap23_proof_export(byte_t **bytes,
     
   } else {ctr += sizeof(int); }
 
+  /* Dump f2 */
   if(ksap23_proof->f2){
     __bytes = &_bytes[ctr];
     if(pbcext_dump_element_G1_bytes(&__bytes, &len, ksap23_proof->f2) == IERROR) 
@@ -207,10 +228,42 @@ groupsig_proof_t* ksap23_proof_import(byte_t *source, uint32_t size) {
        GOTOENDRC(IERROR, ksap23_proof_import);
     }
 
+    /* Get c */
     if(!(ksap23_proof->pi = spk_rep_init(2)))
       GOTOENDRC(IERROR, ksap23_proof_import);
-    if(spk_rep_import(ksap23_proof->pi, &len, &source[ctr]) == IERROR)
+
+    if(!(ksap23_proof->pi->c = pbcext_element_Fr_init()))
+      GOTOENDRC(IERROR, ksap23_proof_import);  
+    if(pbcext_get_element_Fr_bytes(ksap23_proof->pi->c, &len, &source[ctr]) == IERROR)
       GOTOENDRC(IERROR, ksap23_proof_import);
+    ctr += len;  
+    if(!len) {
+      ctr += sizeof(int); // @TODO: this is an artifact of pbcext_get_element_XX_bytes
+      spk_rep_free(ksap23_proof->pi); ksap23_proof->pi = NULL;
+    } else {
+      ctr += len;
+    }
+
+    /* Get s1 */
+    if(!(ksap23_proof->pi->s[0] = pbcext_element_Fr_init()))
+      GOTOENDRC(IERROR, ksap23_proof_import);  
+    if(pbcext_get_element_Fr_bytes(ksap23_proof->pi->s[0], &len, &source[ctr]) == IERROR)
+      GOTOENDRC(IERROR, ksap23_proof_import);
+    ctr += len;  
+    if(!len) {
+      ctr += sizeof(int); // @TODO: this is an artifact of pbcext_get_element_XX_bytes
+      spk_rep_free(ksap23_proof->pi); ksap23_proof->pi = NULL;
+    } else {
+      ctr += len;
+    }
+
+
+    /* Get s2 */
+    if(!(ksap23_proof->pi->s[1] = pbcext_element_Fr_init()))
+      GOTOENDRC(IERROR, ksap23_proof_import);  
+    if(pbcext_get_element_Fr_bytes(ksap23_proof->pi->s[1], &len, &source[ctr]) == IERROR)
+      GOTOENDRC(IERROR, ksap23_proof_import);
+    ctr += len;  
     if(!len) {
       ctr += sizeof(int); // @TODO: this is an artifact of pbcext_get_element_XX_bytes
       spk_rep_free(ksap23_proof->pi); ksap23_proof->pi = NULL;
@@ -266,7 +319,13 @@ int ksap23_proof_get_size(groupsig_proof_t *proof) {
   f1_len = f2_len = pi_len = 0;
   ksap23_proof = proof->proof;
 
-  if(ksap23_proof->pi) { if(spk_rep_get_size(&pi_len) == IERROR) return -1; }
+  if(ksap23_proof->pi) {
+     /*if(spk_rep_get_size(&pi_len) == IERROR) return -1;
+     }*/
+    int size = spk_rep_get_size(ksap23_proof->pi);
+    if(size == IERROR) return -1;
+    pi_len = size;
+  }
   if(ksap23_proof->f1) { if(pbcext_element_G1_byte_size(&f1_len) == IERROR) return -1; }
   if(ksap23_proof->f2) { if(pbcext_element_G1_byte_size(&f2_len) == IERROR) return -1; }
 
