@@ -25,7 +25,7 @@
 #include "groupsig/ksap23/grp_key.h"
 #include "groupsig/ksap23/mem_key.h" //toto je gski na konci join
 #include "sys/mem.h"
-//#include "groupsig/ksap23/spk.h" /* To be replaced in issue23. */ //toto je NIZK pre KSAP23
+#include "groupsig/ksap23/nizk.h" /* To be replaced in issue23. */ //toto je NIZK pre KSAP23
 #include "shim/pbc_ext.h"
 #include "shim/hash.h"
 
@@ -53,7 +53,7 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
 
   ksap23_mem_key_t *ksap23_memkey;
   ksap23_grp_key_t *ksap23_grpkey;
-  //spk_rep_t *pi; //toto doriesit NIZK
+  spk_rep_t *pi; //toto doriesit NIZK
   hash_t *h;
   //pbcext_element_Fr_t *s0, *s1, *x[3];
   pbcext_element_G1_t *n, *f;
@@ -61,10 +61,10 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
   pbcext_element_GT_t *tau, *e1, *e2, *e3;  
   message_t *_mout;
   byte_t *bn, *bw, *bu, *bmsg, *bf1 ,*bf2;
-  //byte_t *bpi; 
+  byte_t *bpi; 
   //void *y[6], *g[5];
   uint64_t len, nlen, f1len, f2len, wlen, ulen, offset;
-  //uint64_t pilen; //vsetko co suvisi s pi treba potom pridat
+  uint64_t pilen; //vsetko co suvisi s pi treba potom pridat
   int rc;
   uint16_t i[8][2], prods[6];  
   
@@ -80,7 +80,7 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
   n = f = NULL;
  
   tau = e1 = e2 = e3 = NULL;
-  //pi = NULL;
+  pi = NULL;
   bn = bf1 = bw = bf2 = bu = bmsg = NULL; // bpi
   h = NULL;
   rc = IOK;
@@ -141,6 +141,16 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
 
 
     /*TU TREBA NIZK Dôkaz*/
+    if(!(pi = spk_rep_init(1))) GOTOENDRC(IERROR, ksap23_join_mem);
+    if (ksap23_nizk1_sign(pi, 
+                      ksap23_grpkey->g,  // g
+                      ksap23_grpkey->h,  // h
+                      ksap23_memkey->u,  // u
+                      ksap23_memkey->f1, // f1
+                      ksap23_memkey->f2, // f2
+                      ksap23_memkey->w,  // w
+                      ksap23_memkey->alpha) == IERROR)
+      GOTOENDRC(IERROR, ksap23_join_mem);
 
 
     /* Need to send (n, f1, f2, u, w, pi, sigmads): prepare ad hoc message */
@@ -172,23 +182,12 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
 				    ksap23_memkey->w) == IERROR) 
       GOTOENDRC(IERROR, ksap23_join_mem);
     len += wlen;
-
-    /*if(pbcext_dump_element_G2_bytes(&bff0,
-				    &ff0len,
-				    ff0) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_join_mem);
-    len += ff0len;
-
-    if(pbcext_dump_element_G2_bytes(&bff1,
-				    &ff1len,
-				    ff1) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_join_mem);
-    len += ff1len;
-
+    
     bpi = NULL;
     if(spk_rep_export(&bpi, &pilen, pi) == IERROR)
       GOTOENDRC(IERROR, ksap23_join_mem);
-    len += pilen;*/
+    len += pilen;
+
 
     if(!(bmsg = (byte_t *) mem_malloc(sizeof(byte_t)*len)))
       GOTOENDRC(IERROR, ksap23_join_mem);
@@ -198,7 +197,7 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
     memcpy(&bmsg[offset], bf2, f2len); offset += f2len;
     memcpy(&bmsg[offset], bu, ulen); offset += ulen;
     memcpy(&bmsg[offset], bw, wlen); offset += wlen;
-    //memcpy(&bmsg[offset], bpi, pilen); offset += pilen;
+    memcpy(&bmsg[offset], bpi, pilen); offset += pilen; //neviem ci tu nechyba sigma ale asi ok
 
     if(!*mout) {
       if(!(_mout = message_from_bytes(bmsg, len)))
@@ -275,7 +274,7 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
     }
   }
 
-  //if (pi) { spk_rep_free(pi); pi = NULL; }
+  if (pi) { spk_rep_free(pi); pi = NULL; }
   //if (s0) { pbcext_element_Fr_free(s0); s0 = NULL; }
   //if (s1) { pbcext_element_Fr_free(s1); s1 = NULL; }  
   if (n) { pbcext_element_G1_free(n); n = NULL; }
@@ -298,7 +297,7 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
   //if (bSS1) { mem_free(bSS1); bSS1 = NULL; }  
   if (bf1) { mem_free(bf1); bf1 = NULL; }
   if (bf2) { mem_free(bf2); bf2 = NULL; }   
-  //if (bpi) { mem_free(bpi); bpi = NULL; }
+  if (bpi) { mem_free(bpi); bpi = NULL; }
   if (bmsg) { mem_free(bmsg); bmsg = NULL; }
   if (h) { hash_free(h); h = NULL; }
 

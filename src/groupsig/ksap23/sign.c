@@ -24,6 +24,7 @@
 #include "groupsig/ksap23/grp_key.h"
 #include "groupsig/ksap23/mem_key.h"
 #include "groupsig/ksap23/signature.h"
+#include "groupsig/ksap23/nizk.h"
 #include "crypto/spk.h"
 #include "shim/pbc_ext.h"
 #include "sys/mem.h"
@@ -35,7 +36,7 @@ int ksap23_sign(groupsig_signature_t *sig,
 		unsigned int seed) {
 
   pbcext_element_Fr_t *r;  //random element r
-  pbcext_element_Fr_t *s;  //random element r
+  pbcext_element_Fr_t *s;  //random element s
   pbcext_element_G1_t *D1s, *D2s; //D1^s
   ksap23_signature_t *ksap23_sig;
   ksap23_grp_key_t *ksap23_grpkey;
@@ -111,6 +112,23 @@ int ksap23_sign(groupsig_signature_t *sig,
 		       msg->bytes,
 		       msg->length) == IERROR)
     GOTOENDRC(IERROR, ksap23_sign);*/
+
+    if(!(ksap23_sig->pi = spk_rep_init(2))) GOTOENDRC(IERROR, ksap23_sign);
+    if (ksap23_snizk2_sign(ksap23_sig->pi,
+          ksap23_sig->uu,
+          ksap23_grpkey->g,  // g
+          ksap23_grpkey->h,
+          ksap23_grpkey->ZZ0,
+          ksap23_grpkey->ZZ1,
+          ksap23_sig->ww,
+          ksap23_sig->c0,
+          ksap23_sig->c1,
+          ksap23_sig->c2,
+          ksap23_memkey->alpha,
+          s,
+          msg->bytes,
+		      msg->length) == IERROR)
+      GOTOENDRC(IERROR, ksap23_sign);
   
 
  ksap23_sign_end:
@@ -143,10 +161,10 @@ int ksap23_sign(groupsig_signature_t *sig,
       pbcext_element_G1_free(ksap23_sig->c2);
       ksap23_sig->c2 = NULL;
     }
-    /*if (ksap23_sig->pi) {
-      spk_dlog_free(ksap23_sig->pi);
+    if (ksap23_sig->pi) {
+      spk_rep_free(ksap23_sig->pi);
       ksap23_sig->pi = NULL;
-    }    */
+    }    
     
   }
   

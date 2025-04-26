@@ -30,6 +30,7 @@
 #include "ksap23.h"
 #include "groupsig/ksap23/gml.h"
 #include "shim/pbc_ext.h"
+ #include "crypto/spk.h"
 
 gml_t* ksap23_gml_init() {
 
@@ -277,6 +278,7 @@ int ksap23_gml_entry_free(gml_entry_t *entry) {
     if (data->f2) { rc = pbcext_element_G1_free(data->f2); data->f2 = NULL; }
     if (data->u) { rc = pbcext_element_G1_free(data->u); data->u = NULL; }
     if (data->w) { rc = pbcext_element_G1_free(data->w); data->w = NULL; }
+    if (data->pi) { rc = spk_rep_free(data->pi); data->pi = NULL; }
     
     mem_free(entry->data); entry->data = NULL;
   }
@@ -290,7 +292,7 @@ int ksap23_gml_entry_free(gml_entry_t *entry) {
 
 int ksap23_gml_entry_get_size(gml_entry_t *entry) {
 
-  uint64_t sf1, sf2, su, sw;
+  uint64_t sf1, sf2, su, sw, spi;
   
   if (!entry) {
     LOG_EINVAL(&logger, __FILE__, "ksap23_gml_entry_get_size", __LINE__, LOGERROR);
@@ -309,9 +311,12 @@ int ksap23_gml_entry_get_size(gml_entry_t *entry) {
   if (pbcext_element_G1_byte_size(&sw) == -1)
     return -1;  
 
-  if (sf1 + sf2 + su + sw > INT_MAX) return -1;
+  if (pbcext_element_G1_byte_size(&spi) == -1)
+    return -1;
 
-  return (int) sf1 + sf2 + su + sw + sizeof(int)*4;
+  if (sf1 + sf2 + su + sw + spi > INT_MAX) return -1;
+
+  return (int) sf1 + sf2 + su + sw + spi + sizeof(int)*5;
   
 }
 
@@ -364,6 +369,13 @@ int ksap23_gml_entry_export(byte_t **bytes,
 
   __bytes = &_bytes[offset];  
   if (pbcext_dump_element_G1_bytes(&__bytes, &len, ksap23_data->w) == IERROR) {
+    mem_free(_bytes); _bytes = NULL;
+    return IERROR;
+  }
+  offset += len;
+
+  __bytes = &_bytes[offset];  
+  if (spk_rep_export(&__bytes, &len, ksap23_data->pi) == IERROR) {
     mem_free(_bytes); _bytes = NULL;
     return IERROR;
   }
@@ -484,6 +496,25 @@ gml_entry_t* ksap23_gml_entry_import(byte_t *bytes, uint32_t size) {
   }
 
   offset += len;  
+
+  if(!(ksap23_data->pi = spk_rep_init(1))) {
+    ksap23_gml_entry_free(entry); entry = NULL;
+    return NULL;
+  }
+
+  if (spk_dlog_export(ksap23_data->pi,
+				  &len,
+				  &bytes[offset]) == IERROR) {
+    ksap23_gml_entry_free(entry); entry = NULL;
+    return NULL;    
+  }
+
+  if (!len) {
+    ksap23_gml_entry_free(entry); entry = NULL;
+    return NULL;    
+  }
+
+  offset += len; 
 
   return entry;
   

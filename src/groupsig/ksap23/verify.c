@@ -22,6 +22,7 @@
 #include "ksap23.h"
 #include "groupsig/ksap23/grp_key.h"
 #include "groupsig/ksap23/signature.h"
+#include "groupsig/ksap23/nizk.h"
 #include "crypto/spk.h"
 #include "shim/pbc_ext.h"
 #include "sys/mem.h"
@@ -62,13 +63,20 @@ int ksap23_verify(uint8_t *ok,
   e1 = e2 = e3 = NULL;
   _ok = 0;
 
-  /* Verify SPK */ //toto treba zmenit na NIZK @todo
-  if (spk_dlog_G1_verify(&_ok,
-			 ksap23_sig->ww,
-			 ksap23_sig->uu,
-			 ksap23_sig->pi,
-			 msg->bytes,
-			 msg->length) == IERROR)
+  /* Verify NIZK */ 
+  if(ksap23_snizk2_verify(&_ok,
+      ksap23_sig->pi,
+      ksap23_sig->uu,
+      ksap23_grpkey->g,
+      ksap23_grpkey->h,
+      ksap23_grpkey->ZZ0,
+      ksap23_grpkey->ZZ1,
+      ksap23_sig->ww,
+      ksap23_sig->c0,
+      ksap23_sig->c1,
+      ksap23_sig->c2,
+      msg->bytes,
+      msg->length) == IERROR)
     GOTOENDRC(IERROR, ksap23_verify);
 
   if (!_ok) {

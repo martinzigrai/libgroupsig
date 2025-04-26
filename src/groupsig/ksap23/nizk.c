@@ -8,6 +8,7 @@
 #include "hash.h"
 #include "mem.h"
 #include "logger.h"
+#include "crypto/spk.h"
 
 
 int ksap23_nizk1_sign(spk_rep_t *pi,
@@ -95,7 +96,7 @@ int ksap23_nizk1_sign(spk_rep_t *pi,
 }
 
 int ksap23_nizk1_verify(uint8_t *ok,
-    spk_rep_t *pi,
+    spk_rep_t *pi, //toto je nieco z crypto/spk.c treba bud urobit vlastnu implementaaciu alebo vyuzit tu spk ak sa da
     pbcext_element_G1_t *g,
     pbcext_element_G1_t *h,
     pbcext_element_G1_t *u,
@@ -179,7 +180,10 @@ if(hash_finalize(hc) == IERROR) GOTOENDRC(IERROR, ksap23_nizk1_verify);
 /* Porovnanie c s hashom */
 pbcext_element_Fr_t *c_verif = NULL;
 c_verif = pbcext_element_Fr_init();
-pbcext_element_Fr_from_hash(c_verif, hc->hash, hc->length);
+
+//pbcext_element_Fr_from_hash(c_verif, hc->hash, hc->length);
+if (pbcext_element_Fr_from_hash(c_verif, hc->hash, hc->length) == IERROR)
+      GOTOENDRC(IERROR, ksap23_nizk1_verify);
 
 if(pbcext_element_Fr_cmp(c_verif, pi->c)) {
   *ok = 0;
@@ -256,7 +260,11 @@ int ksap23_snizk2_sign(spk_rep_t *pi,
       GOTOENDRC(IERROR, ksap23_snizk2_sign);
     
     // com3 = g^k1 * D1^k2
-    pbcext_element_G1_t *temp = pbcext_element_G1_init();
+    //pbcext_element_G1_t *temp = pbcext_element_G1_init();
+    pbcext_element_G1_t *temp;
+    if (!(temp = pbcext_element_G1_init()))
+      GOTOENDRC(IERROR, ksap23_snizk2_sign);
+
 
     if (pbcext_element_G1_mul(temp, g, k1) == IERROR)
       GOTOENDRC(IERROR, ksap23_snizk2_sign);
@@ -427,13 +435,21 @@ int ksap23_snizk2_verify(uint8_t *ok,
 
 
     /* 3. Porovnanie vyziev */
-    pbcext_element_Fr_t *c_verif = pbcext_element_Fr_init();
+    //pbcext_element_Fr_t *c_verif = pbcext_element_Fr_init();
 
     if(hash_finalize(hc) == IERROR) GOTOENDRC(IERROR, ksap23_snizk2_verify);
 
-    pbcext_element_Fr_t *c_verif = NULL;
-    c_verif = pbcext_element_Fr_init();
-    pbcext_element_Fr_from_hash(c_verif, hc->hash, hc->length);
+    //pbcext_element_Fr_t *c_verif = NULL;
+    //c_verif = pbcext_element_Fr_init();
+
+    pbcext_element_Fr_t *c_verif;
+    if (!(c_verif = pbcext_element_Fr_init())) GOTOENDRC(IERROR, ksap23_snizk2_verify);
+
+
+    //pbcext_element_Fr_from_hash(c_verif, hc->hash, hc->length);
+    if (pbcext_element_Fr_from_hash(c_verif, hc->hash, hc->length) == IERROR)
+      GOTOENDRC(IERROR, ksap23_snizk2_verify);
+
     
     if(pbcext_element_Fr_cmp(c_verif, pi->c)) {
       *ok = 0;
@@ -639,18 +655,18 @@ int ksap23_nizk3_verify(uint8_t *ok,
 
     /* Výpočet c1/f1 a c2/f2 v G1 */
     if (!(f1_inv = pbcext_element_G1_init()))
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
+      GOTOENDRC(IERROR, ksap23_nizk3_verify);
     if (pbcext_element_G1_neg(f1_inv, f1) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
+      GOTOENDRC(IERROR, ksap23_nizk3_verify);
     if (pbcext_element_G1_add(c1_f1_inv, c1, f1_inv) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);  
+      GOTOENDRC(IERROR, ksap23_nizk3_verify);  
 
     if (!(f2_inv = pbcext_element_G1_init()))
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
+      GOTOENDRC(IERROR, ksap23_nizk3_verify);
     if (pbcext_element_G1_neg(f2_inv, f2) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
+      GOTOENDRC(IERROR, ksap23_nizk3_verify);
     if (pbcext_element_G1_add(c2_f2_inv, c2, f2_inv) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);     
+      GOTOENDRC(IERROR, ksap23_nizk3_verify);     
 
     /*if (pbcext_element_G1_mul(c1_f1_inv, c1, f1) == IERROR)
       GOTOENDRC(IERROR, ksap23_nizk3_verify);
@@ -668,7 +684,7 @@ int ksap23_nizk3_verify(uint8_t *ok,
       GOTOENDRC(IERROR, ksap23_nizk3_verify);
     if (pbcext_element_G1_mul(t1, c0, pi->c) == IERROR)
       GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if(pbcext_element_G1_add(t1, temp, t1) != IERROR)
+    if(pbcext_element_G1_add(t1, temp, t1) == IERROR)
       GOTOENDRC(IERROR, ksap23_nizk3_verify);
 
     // t2 = D1^s1 * g^c
@@ -676,7 +692,7 @@ int ksap23_nizk3_verify(uint8_t *ok,
       GOTOENDRC(IERROR, ksap23_nizk3_verify);
     if (pbcext_element_G1_mul(t2, g, pi->c) == IERROR)
       GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if(pbcext_element_G1_add(t2, temp, t2) != IERROR)
+    if(pbcext_element_G1_add(t2, temp, t2) == IERROR)
       GOTOENDRC(IERROR, ksap23_nizk3_verify);
 
     // t3 = (c2/f2)^s2 * c0^{c}
@@ -684,7 +700,7 @@ int ksap23_nizk3_verify(uint8_t *ok,
       GOTOENDRC(IERROR, ksap23_nizk3_verify);
     if (pbcext_element_G1_mul(t3, c0, pi->c) == IERROR)
       GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if(pbcext_element_G1_add(t3, temp, t3) != IERROR)
+    if(pbcext_element_G1_add(t3, temp, t3) == IERROR)
       GOTOENDRC(IERROR, ksap23_nizk3_verify);
 
     // t4 = D2^s2 * g^c
@@ -692,7 +708,7 @@ int ksap23_nizk3_verify(uint8_t *ok,
       GOTOENDRC(IERROR, ksap23_nizk3_verify);
     if (pbcext_element_G1_mul(t4, g, pi->c) == IERROR)
       GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if(pbcext_element_G1_add(t4, temp, t4) != IERROR)
+    if(pbcext_element_G1_add(t4, temp, t4) == IERROR)
       GOTOENDRC(IERROR, ksap23_nizk3_verify);
 
     /* Hashovanie všetkých prvkov a správy */
@@ -703,7 +719,10 @@ int ksap23_nizk3_verify(uint8_t *ok,
     for (int i = 0; i < 12; i++) {
         if(pbcext_element_G1_to_bytes(&bg, &len, elements[i]) == IERROR)
             GOTOENDRC(IERROR, ksap23_nizk3_verify);
-        if(hash_update(hc, bg, len) == IERROR) GOTOENDRC(IERROR, ksap23_nizk3_verify);
+        if(hash_update(hc, bg, len) == IERROR){
+          mem_free(bg);
+          GOTOENDRC(IERROR, ksap23_nizk3_verify);
+        } 
         mem_free(bg); bg = NULL;  
     }
 
@@ -711,13 +730,22 @@ int ksap23_nizk3_verify(uint8_t *ok,
     if(hash_update(hc, m, m_len) == IERROR) GOTOENDRC(IERROR, ksap23_nizk3_verify);
 
     /* Výpočet a porovnanie výziev */
-    pbcext_element_Fr_t *c_verif = pbcext_element_Fr_init();
+    //pbcext_element_Fr_t *c_verif = pbcext_element_Fr_init();
+
+    pbcext_element_Fr_t *c_verif;
+    if (!(c_verif = pbcext_element_Fr_init()))
+     GOTOENDRC(IERROR, ksap23_nizk3_verify);
+    /*if(c_verif = pbcext_element_Fr_init() == IERROR) GOTOENDRC(IERROR, ksap23_nizk3_verify);*/
 
     if(hash_finalize(hc) == IERROR) GOTOENDRC(IERROR, ksap23_nizk3_verify);
 
-    pbcext_element_Fr_from_hash(c_verif, hc->hash, hc->length);
+    //pbcext_element_Fr_from_hash(c_verif, hc->hash, hc->length);
+
+    if (pbcext_element_Fr_from_hash(c_verif, hc->hash, hc->length) == IERROR)
+      GOTOENDRC(IERROR, ksap23_nizk3_verify);
+
     
-    if(pbcext_element_Fr_cmp(c_verif, pi->c)) {
+    if(pbcext_element_Fr_cmp(c_verif, pi->c)) { 
       *ok = 0;
     } else {
       *ok = 1;

@@ -9,7 +9,11 @@ add_library (ksap23
   setup.c 
   join_mem.c join_mgr.c 
   sign.c 
-  verify.c 
+  verify.c
+  nizk.c nizk.h
+  open.c
+  judge.c
+  proof.c proof.h 
   gml.c gml.h)
 
 target_include_directories (ksap23 PRIVATE ${OPENSSL_INCLUDE_DIR})

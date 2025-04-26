@@ -29,178 +29,263 @@
  #include "shim/pbc_ext.h"
  #include "ksap23.h"
  #include "groupsig/ksap23/spk.h"
+ #include "groupsig/ksap23/nizk.h"
  #include "groupsig/ksap23/proof.h"
+
  
- groupsig_proof_t* ksap23_proof_init() {
- 
-   groupsig_proof_t *proof;
- 
-   if(!(proof = (groupsig_proof_t *) mem_malloc(sizeof(groupsig_proof_t)))) {
-     return NULL;
-   }
- 
-   proof->scheme = GROUPSIG_ksap23_CODE;
-   proof->proof = NULL;
- 
-   return proof;
- }
- 
- int ksap23_proof_free(groupsig_proof_t *proof) {
- 
-   ksap23_proof_t *ksap23_proof;
-   
-   if (!proof) {
-     LOG_EINVAL_MSG(&logger, __FILE__, "ksap23_proof_free", __LINE__,
-            "Nothing to free.", LOGWARN);
-     return IERROR;
-   }
- 
-   ksap23_proof = proof->proof;
- 
-   if (ksap23_proof) {
-     ksap23_spk1_free(ksap23_proof);
-     ksap23_proof = NULL;
-   }
-   
-   mem_free(proof);
- 
-   return IOK;
- 
- }
- 
- int ksap23_proof_get_size(groupsig_proof_t *proof) {
- 
-   ksap23_proof_t *ksap23_proof;
-   uint64_t size, proof_len;
-   
-   if(!proof || proof->scheme != GROUPSIG_ksap23_CODE) {
-     LOG_EINVAL(&logger, __FILE__, "ksap23_proof_get_size", __LINE__, LOGERROR);
-     return -1;
-   }
- 
-   ksap23_proof = proof->proof;
- 
-   if ((proof_len = ksap23_spk1_get_size(ksap23_proof)) == -1)
-     return -1;
- 
-   size = proof_len + /* sizeof(int)*1 */ + 1;
- 
-   if (size > INT_MAX) return -1;
-   
-   return (int) size;
- 
- }
- 
- int ksap23_proof_export(byte_t **bytes, uint32_t *size, groupsig_proof_t *proof) {
- 
-   ksap23_proof_t *ksap23_proof;
-   byte_t *_bytes, *__bytes;
-   int rc, _size;
-   uint64_t proof_len;
-   uint8_t code;
- 
-   if(!proof || proof->scheme != GROUPSIG_ksap23_CODE) {
-     LOG_EINVAL(&logger, __FILE__, "ksap23_proof_export", __LINE__, LOGERROR);
-     return IERROR;
-   }
- 
-   rc = IOK;
-   ksap23_proof = proof->proof;
- 
-   if ((_size = ksap23_proof_get_size(proof)) == -1) {
-     return IERROR;
-   }
- 
-   if (!(_bytes = mem_malloc(sizeof(byte_t)*_size))) {
-     return IERROR;
-   }  
- 
-   /* Dump GROUPSIG_ksap23_CODE */
-   code = GROUPSIG_ksap23_CODE;
-   _bytes[0] = code;
- 
-   /* Export the SPK */
-   __bytes = &_bytes[1];
- 
-   if (ksap23_spk1_export(&__bytes, &proof_len, ksap23_proof) == IERROR)
-     GOTOENDRC(IERROR, ksap23_proof_export);
- 
-   /* Sanity check */
-   if (_size != proof_len+1) {
-     LOG_ERRORCODE_MSG(&logger, __FILE__, "ksap23_proof_export", __LINE__,
-                 EDQUOT, "Unexpected size.", LOGERROR);
-     GOTOENDRC(IERROR, ksap23_proof_export);
-   }
- 
-   /* Prepare the return */
-   if(!*bytes) {
-     *bytes = _bytes;
-   } else {
-     memcpy(*bytes, _bytes, _size);
-     mem_free(_bytes); _bytes = NULL;
-   }
- 
-   *size = _size;  
- 
+groupsig_proof_t* ksap23_proof_init() {
+
+    ksap23_proof_t *ksap23_proof; //= NULL;
+    groupsig_proof_t *proof; // = NULL;
+    
+    //int rc = IOK;
+    
+    if(!(proof = mem_malloc(sizeof(groupsig_proof_t)))) {
+        return NULL;
+        //GOTOENDRC(IERROR, ksap23_proof_init);
+    }
+
+    if(!(proof->proof = mem_malloc(sizeof(ksap23_proof_t)))) {
+        mem_free(proof); proof = NULL;
+        return NULL;
+        //GOTOENDRC(IERROR, ksap23_proof_init);
+    }
+
+    proof->scheme = GROUPSIG_ksap23_CODE;
+    ksap23_proof = proof->proof;
+
+    ksap23_proof->pi = NULL;
+    ksap23_proof->f1 = NULL;
+    ksap23_proof->f2 = NULL;
+
+    return proof;
+
+}
+
+int ksap23_proof_free(groupsig_proof_t *proof) {
+    //if (!proof) return IOK;
+    ksap23_proof_t *ksap23_proof;
+
+    if (!proof) {
+      LOG_EINVAL_MSG(&logger, __FILE__, "ksap23_proof_free", __LINE__,
+         "Nothing to free.", LOGWARN);
+      return IERROR;
+    }
+
+    if(proof->scheme != GROUPSIG_ksap23_CODE) {
+      LOG_EINVAL(&logger, __FILE__, "ksap23_proof_free", __LINE__, LOGERROR);
+      return IERROR;	       
+    }
+    
+    if (proof->proof) {
+        //ksap23_proof_internal_free((ksap23_proof_t*)proof->proof);
+        ksap23_proof = proof->proof;
+        if(ksap23_proof->pi){
+          spk_rep_free(ksap23_proof->pi);
+          ksap23_proof->pi = NULL;
+        }
+        if(ksap23_proof->f1){
+          pbcext_element_G1_free(ksap23_proof->f1);
+          ksap23_proof->f1 = NULL;
+        }
+        if(ksap23_proof->f2){
+          pbcext_element_G1_free(ksap23_proof->f2);
+          ksap23_proof->f2 = NULL;
+        }
+    }
+    mem_free(proof); proof = NULL;
+
+    return IOK;
+}
+
+int ksap23_proof_export(byte_t **bytes,
+      uint32_t *size,
+      groupsig_proof_t *proof) {
+
+    ksap23_proof_t *ksap23_proof;
+    byte_t *_bytes, *__bytes;
+    uint64_t len;
+    int _size, ctr, rc;
+    uint8_t code;
+
+    if(!bytes ||
+     !size ||
+     !proof || proof->scheme != GROUPSIG_ksap23_CODE) {
+    LOG_EINVAL(&logger, __FILE__, "ksap23_proof_export", __LINE__, LOGERROR);
+    return IERROR;
+  }
+
+  rc = IOK;
+  ctr = 0;
+  ksap23_proof = proof->proof;
+
+  if((_size = ksap23_proof_get_size(proof)) == -1){
+    return IERROR;
+  }
+
+  if(!(_bytes = mem_malloc(sizeof(byte_t)*_size))) {
+    return IERROR;
+  }
+
+  code = GROUPSIG_ksap23_CODE;
+  _bytes[ctr++] = code;
+
+  if(ksap23_proof->pi){
+    __bytes = &_bytes[ctr];
+    if(spk_rep_export(&__bytes, &len, ksap23_proof->pi) == IERROR) 
+      GOTOENDRC(IERROR, ksap23_proof_export);
+    ctr += len;
+
+  } else {ctr += sizeof(int); }
+
+  if(ksap23_proof->f1){
+    __bytes = &_bytes[ctr];
+    if(pbcext_dump_element_G1_bytes(&__bytes, &len, ksap23_proof->f1) == IERROR) 
+      GOTOENDRC(IERROR, ksap23_proof_export);
+    ctr += len;
+    
+  } else {ctr += sizeof(int); }
+
+  if(ksap23_proof->f2){
+    __bytes = &_bytes[ctr];
+    if(pbcext_dump_element_G1_bytes(&__bytes, &len, ksap23_proof->f2) == IERROR) 
+      GOTOENDRC(IERROR, ksap23_proof_export);
+    ctr += len;
+    
+  } else {ctr += sizeof(int); }
+
+  if (ctr != _size) {
+    LOG_ERRORCODE_MSG(&logger, __FILE__, "ksap23_proof_export", __LINE__, 
+		      EDQUOT, "Unexpected size.", LOGERROR);
+    GOTOENDRC(IERROR, ksap23_proof_export);
+  }  
+
+  if(!*bytes){
+    *bytes = _bytes;
+  } else {
+    memcpy(*bytes, _bytes, ctr);
+    mem_free(_bytes); _bytes = NULL;
+  }
+
+  *size = ctr;
+
   ksap23_proof_export_end:
-   
-   if (rc == IERROR && _bytes) { mem_free(_bytes); _bytes = NULL; }
-   return rc;
- }
- 
- groupsig_proof_t* ksap23_proof_import(byte_t *source, uint32_t size) {
- 
-   groupsig_proof_t *proof;
-   uint64_t proof_len;
-   int rc;
-   uint8_t scheme;
-   
-   if(!source || !size) {
-     LOG_EINVAL(&logger, __FILE__, "ksap23_proof_import", __LINE__, LOGERROR);
-     return NULL;
+
+  if(rc == IERROR){
+    if(_bytes) {mem_free(_bytes); _bytes = NULL; }
+  }
+
+  return rc;
+}
+
+groupsig_proof_t* ksap23_proof_import(byte_t *source, uint32_t size) {
+
+    groupsig_proof_t *proof;
+    ksap23_proof_t *ksap23_proof;
+    uint64_t len;
+    byte_t scheme; //mozno treba type taktiez aj do export ale myslim ze netreba
+    int rc, ctr;
+
+    if(!source || !size) {
+      LOG_EINVAL(&logger, __FILE__, "ksap23_proof_import", __LINE__, LOGERROR);
+      return NULL;
+    }
+  
+    rc = IOK;
+    ctr = 0;
+
+    if(!(proof = ksap23_proof_init())) {
+      return NULL;
+    }
+
+    ksap23_proof = proof->proof;
+
+    scheme = source[ctr++];
+    if(scheme != proof->scheme) {
+       LOG_ERRORCODE_MSG(&logger, __FILE__, "ksap23_proof_import", __LINE__, 
+		      EDQUOT, "Unexpected proof scheme.", LOGERROR);
+       GOTOENDRC(IERROR, ksap23_proof_import);
+    }
+
+    if(!(ksap23_proof->pi = spk_rep_init(2)))
+      GOTOENDRC(IERROR, ksap23_proof_import);
+    if(spk_rep_import(ksap23_proof->pi, &len, &source[ctr]) == IERROR)
+      GOTOENDRC(IERROR, ksap23_proof_import);
+    if(!len) {
+      ctr += sizeof(int); // @TODO: this is an artifact of pbcext_get_element_XX_bytes
+      spk_rep_free(ksap23_proof->pi); ksap23_proof->pi = NULL;
+    } else {
+      ctr += len;
+    }
+
+    if(!(ksap23_proof->f1 = pbcext_element_G1_init()))
+      GOTOENDRC(IERROR, ksap23_proof_import);
+    if(pbcext_get_element_G1_bytes(ksap23_proof->f1, &len, &source[ctr]) == IERROR)
+      GOTOENDRC(IERROR, ksap23_proof_import);
+    if(!len) {
+      ctr += sizeof(int); // @TODO: this is an artifact of pbcext_get_element_XX_bytes
+      pbcext_element_G1_free(ksap23_proof->f1); ksap23_proof->f1 = NULL;
+    } else {
+      ctr += len;
    }
- 
-   rc = IOK;
- 
-   if(!(proof = ksap23_proof_init())) {
-     return NULL;
+
+   if(!(ksap23_proof->f2 = pbcext_element_G1_init()))
+      GOTOENDRC(IERROR, ksap23_proof_import);
+   if(pbcext_get_element_G1_bytes(ksap23_proof->f2, &len, &source[ctr]) == IERROR)
+      GOTOENDRC(IERROR, ksap23_proof_import);
+   if(!len) {
+      ctr += sizeof(int); // @TODO: this is an artifact of pbcext_get_element_XX_bytes
+      pbcext_element_G1_free(ksap23_proof->f2); ksap23_proof->f2 = NULL;
+   } else {
+      ctr += len;
    }
- 
-   /* First byte: scheme */
-   scheme = source[0];
-   if (scheme != proof->scheme) {
-     LOG_ERRORCODE_MSG(&logger, __FILE__, "ksap23_proof_import", __LINE__, 
-               EDQUOT, "Unexpected proof scheme.", LOGERROR);
-     GOTOENDRC(IERROR, ksap23_proof_import);
-   }
- 
-   if (!(proof->proof = ksap23_spk1_import(&source[1], &proof_len)))
-     GOTOENDRC(IERROR, ksap23_proof_import);
-   
-   if (proof_len != size - 1) {
-     LOG_ERRORCODE_MSG(&logger, __FILE__, "ksap23_proof_import", __LINE__, 
-               EDQUOT, "Unexpected proof size.", LOGERROR);
-     GOTOENDRC(IERROR, ksap23_proof_import);
-   }
- 
+
   ksap23_proof_import_end:
- 
+
    if(rc == IERROR && proof) { ksap23_proof_free(proof); proof = NULL; }
    if(rc == IOK) return proof;
-   return NULL;  
+  
+   return NULL; 
    
- }
+}
+
+int ksap23_proof_get_size(groupsig_proof_t *proof) {
+    
+  ksap23_proof_t *ksap23_proof;
+  uint64_t f1_len, f2_len, pi_len, total_size;
+
+    /*if (!proof || !proof->proof) {
+        return -1;
+    }*/
+
+  if(!proof || proof->scheme != GROUPSIG_ksap23_CODE) {
+    LOG_EINVAL(&logger, __FILE__, "ksap23_proof_get_size", __LINE__, LOGERROR);
+    return -1;
+  }
+
+  f1_len = f2_len = pi_len = 0;
+  ksap23_proof = proof->proof;
+
+  if(ksap23_proof->pi) { if(spk_rep_get_size(&pi_len) == IERROR) return -1; }
+  if(ksap23_proof->f1) { if(pbcext_element_G1_byte_size(&f1_len) == IERROR) return -1; }
+  if(ksap23_proof->f2) { if(pbcext_element_G1_byte_size(&f2_len) == IERROR) return -1; }
+
+  total_size = sizeof(uint8_t) + sizeof(int)*3 + f1_len + f2_len + pi_len;
+
+  if(total_size > INT_MAX) return -1;
+  return (int)total_size;
+}
+
+char* ksap23_proof_to_string(groupsig_proof_t *proof) {
  
- char* ksap23_proof_to_string(groupsig_proof_t *proof) {
- 
-   if(!proof || proof->scheme != GROUPSIG_ksap23_CODE) {
-     LOG_EINVAL(&logger, __FILE__, "ksap23_proof_to_string", __LINE__, LOGERROR);
-     return NULL;
-   }
-   
-   return NULL;
- 
- }
+  if(!proof || proof->scheme != GROUPSIG_ksap23_CODE) {
+    LOG_EINVAL(&logger, __FILE__, "ksap23_proof_to_string", __LINE__, LOGERROR);
+    return NULL;
+  }
+  
+  return NULL;
+
+}
  
  /* proof.c ends here */
  

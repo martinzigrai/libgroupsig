@@ -25,6 +25,7 @@
 #include "include/gml.h"
 #include "shim/pbc_ext.h"
 #include "ksap23.h"
+ #include "crypto/spk.h"
 
 /** 
  * @struct ksap23_gml_entry_data_t
@@ -35,6 +36,7 @@ typedef struct {
   pbcext_element_G1_t *f2;
   pbcext_element_G1_t *u;
   pbcext_element_G1_t *w;
+  spk_rep_t *pi;
   //nezabudni na dôkaz Pi a sigma DS (strana 21. 1 join 4 bod)
 } ksap23_gml_entry_data_t;  
 

@@ -26,7 +26,7 @@
 #include "groupsig/ksap23/mgr_key.h"
 #include "groupsig/ksap23/mem_key.h"
 #include "groupsig/ksap23/gml.h"
-//#include "groupsig/ksap23/spk.h"
+#include "groupsig/ksap23/nizk.h"
 #include "crypto/spk.h"
 #include "shim/pbc_ext.h"
 #include "shim/hash.h"
@@ -76,7 +76,7 @@ int ksap23_join_mgr(message_t **mout,
   gml_entry_t *ksap23_entry;
   pbcext_element_G1_t *n, *f1, *f2, *u, *v , *w;
   pbcext_element_GT_t *tau;
-  //spk_rep_t *pi;
+  spk_rep_t *pi;
   hash_t *h;
   message_t *_mout;
   //byte_t *bn, *bf, *bv;
@@ -103,7 +103,7 @@ int ksap23_join_mgr(message_t **mout,
   n = f1 = f2 = u = v = w = NULL;
   tau = NULL;
   h = NULL;
-  //pi = NULL;
+  pi = NULL;
   rc = IOK;
   
   if (!seq) { /* First step */
@@ -154,15 +154,14 @@ int ksap23_join_mgr(message_t **mout,
     if (pbcext_get_element_G1_bytes(w, &wlen, min->bytes + offset) == IERROR)
       GOTOENDRC(IERROR, ksap23_join_mgr);
     offset += wlen;
-    /*if (!(pi = spk_rep_import(min->bytes + offset, &pilen)))
+    if (!(pi = spk_rep_import(min->bytes + offset, &pilen)))
       GOTOENDRC(IERROR, ksap23_join_mgr);
-    offset += pilen;*/
+    offset += pilen;
 
     if (pbcext_element_G1_to_bytes(&bn, &nlen, n) == IERROR)
       GOTOENDRC(IERROR, ksap23_join_mgr);
 
-    /* Check the SPK -- this will change with issue23 */
-    /* Compute the SPK for sk -- this will be replaced in issue23 */
+    /* Check the NIZK  */
 
     /* u = Hash(f) */
     if(pbcext_dump_element_G1_bytes(&bf1, &len, f1) == IERROR) 
@@ -177,6 +176,14 @@ int ksap23_join_mgr(message_t **mout,
       GOTOENDRC(IERROR, ksap23_join_mgr);
     if(pbcext_element_G1_from_hash(u, h->hash, h->length) == IERROR)
       GOTOENDRC(IERROR, ksap23_join_mgr);    
+
+    if (ksap23_nizk1_verify(&ok, pi, 
+          ksap23_grpkey->g, 
+          ksap23_grpkey->h, 
+          u, f1, f2, w) == IERROR) {
+      GOTOENDRC(IERROR, ksap23_join_mgr);
+    }
+    if (!ok) GOTOENDRC(IERROR, ksap23_join_mgr);
         
 
     if (!(v = pbcext_element_G1_init()))
@@ -205,7 +212,8 @@ int ksap23_join_mgr(message_t **mout,
     ((ksap23_gml_entry_data_t *) ksap23_entry->data)->f1 = f1;
     ((ksap23_gml_entry_data_t *) ksap23_entry->data)->f2 = f2;
     ((ksap23_gml_entry_data_t *) ksap23_entry->data)->u = u;
-    ((ksap23_gml_entry_data_t *) ksap23_entry->data)->w = w;    
+    ((ksap23_gml_entry_data_t *) ksap23_entry->data)->w = w;
+    ((ksap23_gml_entry_data_t *) ksap23_entry->data)->pi = pi;
     //((ksap23_gml_entry_data_t *) ksap23_entry->data)->tau = tau;
 
     if(gml_insert(gml, ksap23_entry) == IERROR) GOTOENDRC(IERROR, ksap23_join_mgr);
@@ -237,18 +245,19 @@ int ksap23_join_mgr(message_t **mout,
     if (f1) { pbcext_element_G1_free(f1); f1 = NULL; }
     if (f2) { pbcext_element_G1_free(f2); f2 = NULL; }
     if (u) { pbcext_element_G1_free(u); u = NULL; }
-    if (w) { pbcext_element_G1_free(w); w = NULL; }    
+    if (w) { pbcext_element_G1_free(w); w = NULL; } 
+    if (v) { pbcext_element_G1_free(v); v = NULL; }   
     if (tau) { pbcext_element_GT_free(tau); tau = NULL; }  
     if (ksap23_entry) { ksap23_gml_entry_free(ksap23_entry); ksap23_entry = NULL; }
   }
 
   if (n) { pbcext_element_G1_free(n); n = NULL; }
   //if (f) { pbcext_element_G1_free(f); f = NULL; }  
-  if (u) { pbcext_element_G1_free(u); u = NULL; }
+  //if (u) { pbcext_element_G1_free(u); u = NULL; }
   if (v) { pbcext_element_G1_free(v); v = NULL; }
   if (w) { pbcext_element_G1_free(w); w = NULL; }
   if (h) { hash_free(h); h = NULL; }
-  //if (pi) { spk_rep_free(pi); pi = NULL; }
+  if (pi) { spk_rep_free(pi); pi = NULL; }
   if (bn) { mem_free(bn); bn = NULL; }
   //if (bf) { mem_free(bf); bf = NULL; }  
   if (bv) { mem_free(bv); bv = NULL; }

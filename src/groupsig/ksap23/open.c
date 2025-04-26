@@ -32,9 +32,14 @@
  #include "groupsig/ksap23/mgr_key.h"
  #include "groupsig/ksap23/signature.h"
  #include "groupsig/ksap23/gml.h"
+ #include "groupsig/ksap23/nizk.h"
+
  
  int ksap23_open(uint64_t *index,
-           groupsig_proof_t *proof, 
+           groupsig_proof_t *proof,
+           //spk_rep_t *proof,
+           //pbcext_element_G1_t *ff1_out,
+           //pbcext_element_G1_t *ff2_out,
            crl_t *crl,
            groupsig_signature_t *sig, 
            groupsig_key_t *grpkey,
@@ -52,9 +57,12 @@
    uint64_t i, b;
    uint32_t slen;
    uint8_t match;
+   uint8_t ok;
    int rc;
+   spk_rep_t *pi;
+   ksap23_proof_t *ksap23_proof;
  
-   if (!index || !sig || sig->scheme != GROUPSIG_ksap23_CODE ||
+   if (!index || !sig || sig->scheme != GROUPSIG_ksap23_CODE || !proof ||
        !grpkey || grpkey->scheme != GROUPSIG_ksap23_CODE ||
        !mgrkey || mgrkey->scheme != GROUPSIG_ksap23_CODE ||
        !gml) {
@@ -75,14 +83,14 @@
      
    match = 0;
    
-   if (pbcext_element_G1_mul(ff1, ksap23_sig->c0, ksap23_grpkey->ZZ0) == IERROR)
+   if (pbcext_element_G1_mul(ff1, ksap23_sig->c0, ksap23_mgrkey->z0) == IERROR)
      GOTOENDRC(IERROR, ksap23_open);
    if (pbcext_element_G1_neg(ff1, ff1) == IERROR) 
      GOTOENDRC(IERROR, ksap23_open); 
    if (pbcext_element_G1_add(ff1, ksap23_sig->c1, ff1) == IERROR)
      GOTOENDRC(IERROR, ksap23_open);
 
-   if (pbcext_element_G1_mul(ff2, ksap23_sig->c0, ksap23_grpkey->ZZ1) == IERROR)
+   if (pbcext_element_G1_mul(ff2, ksap23_sig->c0, ksap23_mgrkey->z1) == IERROR)
      GOTOENDRC(IERROR, ksap23_open);
    if (pbcext_element_G1_neg(ff2, ff2) == IERROR) 
      GOTOENDRC(IERROR, ksap23_open); 
@@ -96,55 +104,86 @@
       if (!ksap23_data) GOTOENDRC(IERROR, ksap23_open);
 
       if (!pbcext_element_G1_cmp(ksap23_data->f1, ff1) &&
-      !pbcext_element_G1_cmp(ksap23_data->f2, ff2)) { //tu doplnit dokaz
- 
-       /* Get the identity from the matched entry. */
+      !pbcext_element_G1_cmp(ksap23_data->f2, ff2)) { 
+
+       if (ksap23_nizk1_verify(&ok, ksap23_data->pi, 
+          ksap23_grpkey->g, 
+          ksap23_grpkey->h, 
+          ksap23_data->u,
+          ksap23_data->f1,
+          ksap23_data->f2,
+          ksap23_data->w) == IERROR) 
+          {
+            GOTOENDRC(IERROR, ksap23_open);
+          }
+
+      if(ok){
+        /* Get the identity from the matched entry. */
        *index = ksap23_entry->id;
        match++; //prechadza sa cely zoznam, co moze trvat dlhsie
-
        if(match > 1) GOTOENDRC(IFAIL, ksap23_open);
- 
+      }
      }
-
    }
 
    if(!match) GOTOENDRC(IFAIL, ksap23_open);
-
  
    /* Export the signature as an array of bytes */
    bsig = NULL;
    if (ksap23_signature_export(&bsig, &slen, sig) == IERROR)
      GOTOENDRC(IERROR, ksap23_open);
- 
-   /*if (!(proof->proof = ksap23_spk1_init()))
+
+    if (!(pi = spk_rep_init(2)))
      GOTOENDRC(IERROR, ksap23_open);
- 
-   if (!(((ksap23_spk1_t *) proof->proof)->tau = pbcext_element_GT_init()))
+
+    if (ksap23_nizk3_sign(pi,
+                      ksap23_mgrkey->z0,
+                      ksap23_mgrkey->z1,
+                      ksap23_grpkey->g,
+                      ksap23_sig->c0,
+                      ksap23_sig->c1,
+                      ksap23_sig->c2,
+                      ff1,
+                      ff2,
+                      ksap23_grpkey->ZZ0,
+                      ksap23_grpkey->ZZ1,
+                      bsig,
+                      slen ) == IERROR)
+      GOTOENDRC(IERROR, ksap23_join_mem);
+     
+    //moznost c1 
+    /*ksap23_proof = proof->proof;
+    ksap23_proof->f1=ff1;
+    ksap23_proof->f2=ff2;*/
+
+    //moznost c2
+    if (!(((ksap23_proof_t *) proof->proof)->pi = spk_rep_init(2)))
      GOTOENDRC(IERROR, ksap23_open);
-   if (pbcext_element_GT_set(((ksap23_spk1_t *) proof->proof)->tau, e3) == IERROR)
-     GOTOENDRC(IERROR, ksap23_open);*/
-   
-   /*if (ksap23_spk1_sign(proof->proof,
-                ff,
-                ksap23_sig->uu,
-                ksap23_grpkey->g,
-                e2,
-                e3,
-                bsig,
-                slen) == IERROR) 
-     GOTOENDRC(IERROR, ksap23_open);*/
+    if (spk_rep_copy(((ksap23_proof_t *) proof->proof)->pi, pi) == IERROR)
+     GOTOENDRC(IERROR, ksap23_open);
+
+    if (!(((ksap23_proof_t *) proof->proof)->f1 = pbcext_element_G1_init()))
+     GOTOENDRC(IERROR, ksap23_open);
+    if (pbcext_element_G1_set(((ksap23_proof_t *) proof->proof)->f1, ff1) == IERROR)
+     GOTOENDRC(IERROR, ksap23_open);
+    
+    if (!(((ksap23_proof_t *) proof->proof)->f2 = pbcext_element_G1_init()))
+     GOTOENDRC(IERROR, ksap23_open);
+    if (pbcext_element_G1_set(((ksap23_proof_t *) proof->proof)->f2, ff2) == IERROR)
+     GOTOENDRC(IERROR, ksap23_open);
  
   ksap23_open_end:
  
    if (ff1) { pbcext_element_G1_free(ff1); ff1 = NULL; }
    if (ff2) { pbcext_element_G1_free(ff2); ff2 = NULL; }
+   if (pi)  { spk_rep_free(pi); pi = NULL; }
    
    if (bsig) { mem_free(bsig); bsig = NULL; }
    
    if (rc == IERROR) {
-     if (proof->proof) {
-       ksap23_spk1_free(proof->proof);
-       proof->proof = NULL;
+     if (proof) {
+       ksap23_proof_free(proof);
+       proof = NULL;
      }
    }
    
