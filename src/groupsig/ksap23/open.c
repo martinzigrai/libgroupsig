@@ -59,7 +59,7 @@
    uint8_t match;
    uint8_t ok;
    int rc;
-   spk_rep_t *pi;
+   //spk_rep_t *pi;
    ksap23_proof_t *ksap23_proof;
  
    if (!index || !sig || sig->scheme != GROUPSIG_ksap23_CODE || !proof ||
@@ -73,6 +73,7 @@
    ksap23_sig = sig->sig;
    ksap23_grpkey = grpkey->key;
    ksap23_mgrkey = mgrkey->key;
+   ksap23_proof = proof->proof;
    rc = IOK;
   
     //initialization of ff1 and ff2
@@ -132,11 +133,16 @@
    bsig = NULL;
    if (ksap23_signature_export(&bsig, &slen, sig) == IERROR)
      GOTOENDRC(IERROR, ksap23_open);
+  
+   /*printf("bsig (sign): ");
+   for (int i = 0; i < slen; i++) printf("%02x", bsig[i]);
+   printf("\n");  */
 
-    if (!(pi = spk_rep_init(2)))
-     GOTOENDRC(IERROR, ksap23_open);
+    /*if (!(pi = spk_rep_init(2)))
+     GOTOENDRC(IERROR, ksap23_open);*/
 
-    if (ksap23_nizk3_sign(pi,
+    if(!(ksap23_proof->pi = spk_rep_init(2))) GOTOENDRC(IERROR, ksap23_open);
+    if (ksap23_nizk3_sign(ksap23_proof->pi,
                       ksap23_mgrkey->z0,
                       ksap23_mgrkey->z1,
                       ksap23_grpkey->g,
@@ -150,6 +156,13 @@
                       bsig,
                       slen ) == IERROR)
       GOTOENDRC(IERROR, ksap23_open);
+
+    if (!(ksap23_proof->f1 = pbcext_element_G1_init())) GOTOENDRC(IERROR, ksap23_open);
+    if (pbcext_element_G1_set(ksap23_proof->f1, ff1) == IERROR)
+      GOTOENDRC(IERROR, ksap23_open);
+    if (!(ksap23_proof->f2 = pbcext_element_G1_init())) GOTOENDRC(IERROR, ksap23_open);
+    if (pbcext_element_G1_set(ksap23_proof->f2, ff2) == IERROR)
+      GOTOENDRC(IERROR, ksap23_open); 
      
     //moznost c1 
     /*ksap23_proof = proof->proof;
@@ -157,34 +170,48 @@
     ksap23_proof->f2=ff2;*/
 
     //moznost c2
-    if (!(((ksap23_proof_t *) proof->proof)->pi = spk_rep_init(2)))
-     GOTOENDRC(IERROR, ksap23_open);
-    if (spk_rep_copy(((ksap23_proof_t *) proof->proof)->pi, pi) == IERROR)
-     GOTOENDRC(IERROR, ksap23_open);
+    /*ksap23_proof_t *ksap23_proof = (ksap23_proof_t *) proof->proof;
 
-    if (!(((ksap23_proof_t *) proof->proof)->f1 = pbcext_element_G1_init()))
-     GOTOENDRC(IERROR, ksap23_open);
-    if (pbcext_element_G1_set(((ksap23_proof_t *) proof->proof)->f1, ff1) == IERROR)
-     GOTOENDRC(IERROR, ksap23_open);
+    /*if (!(ksap23_proof->pi = spk_rep_init(2)))
+     GOTOENDRC(IERROR, ksap23_open);*/
+    /*if (spk_rep_copy(ksap23_proof->pi, pi) == IERROR)
+     GOTOENDRC(IERROR, ksap23_open);*/
+
+    /*if (!(ksap23_proof->f1 = pbcext_element_G1_init()))
+     GOTOENDRC(IERROR, ksap23_open);*/
+    /*if (pbcext_element_G1_set(ksap23_proof->f1, ff1) == IERROR)
+     GOTOENDRC(IERROR, ksap23_open);*/
     
-    if (!(((ksap23_proof_t *) proof->proof)->f2 = pbcext_element_G1_init()))
-     GOTOENDRC(IERROR, ksap23_open);
-    if (pbcext_element_G1_set(((ksap23_proof_t *) proof->proof)->f2, ff2) == IERROR)
-     GOTOENDRC(IERROR, ksap23_open);
+    /*if (!(ksap23_proof->f2 = pbcext_element_G1_init()))
+     GOTOENDRC(IERROR, ksap23_open);*/
+    /*if (pbcext_element_G1_set(ksap23_proof->f2, ff2) == IERROR)
+     GOTOENDRC(IERROR, ksap23_open);*/
  
   ksap23_open_end:
  
    if (ff1) { pbcext_element_G1_free(ff1); ff1 = NULL; }
    if (ff2) { pbcext_element_G1_free(ff2); ff2 = NULL; }
-   if (pi)  { spk_rep_free(pi); pi = NULL; }
    
    if (bsig) { mem_free(bsig); bsig = NULL; }
    
    if (rc == IERROR) {
-     if (proof) {
+      if (ksap23_proof->f1) {
+        pbcext_element_G1_free(ksap23_proof->f1);
+        ksap23_proof->f1 = NULL;
+      }
+      if (ksap23_proof->f2) {
+        pbcext_element_G1_free(ksap23_proof->f2);
+        ksap23_proof->f2 = NULL;
+      }
+      if (ksap23_proof->pi) {
+        spk_rep_free(ksap23_proof->pi);
+        ksap23_proof->pi = NULL;
+      } 
+
+     /*if (proof) {
        ksap23_proof_free(proof);
        proof = NULL;
-     }
+     }*/
    }
    
    return rc;

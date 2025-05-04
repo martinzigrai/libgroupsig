@@ -72,6 +72,10 @@
    if (ksap23_signature_export(&bsig, &slen, sig) == IERROR)
      GOTOENDRC(IERROR, ksap23_judge);
 
+   /*printf("bsig (sign): ");
+   for (int i = 0; i < slen; i++) printf("%02x", bsig[i]);
+   printf("\n");  */
+
      if(ksap23_nizk3_verify(&_ok,
         ksap23_proof->pi,
         ksap23_grpkey->g,
@@ -93,6 +97,7 @@
   ksap23_judge_end:
  
    if (bsig) { mem_free(bsig); bsig = NULL; }
+   
  
    return rc;
    

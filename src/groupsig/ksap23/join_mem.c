@@ -199,15 +199,32 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
     memcpy(&bmsg[offset], bw, wlen); offset += wlen;
     memcpy(&bmsg[offset], bpi, pilen); offset += pilen; //neviem ci tu nechyba sigma ale asi ok
 
+    mem_free(bn); bn = NULL;
+    mem_free(bf1); bf1 = NULL;
+    mem_free(bf2); bf2 = NULL;
+    mem_free(bu); bu = NULL;
+    mem_free(bw); bw = NULL;
+    mem_free(bpi); bpi = NULL;
+
     if(!*mout) {
-      if(!(_mout = message_from_bytes(bmsg, len)))
-	GOTOENDRC(IERROR, ksap23_join_mem);
+      if(!(_mout = message_from_bytes(bmsg, len))){
+        mem_free(bmsg);
+        GOTOENDRC(IERROR, ksap23_join_mem);
+      }
+	      
       *mout = _mout;
     } else {
       _mout = *mout;
-      if(message_set_bytes(*mout, bmsg, len) == IERROR)
-	GOTOENDRC(IERROR, ksap23_join_mem);
+      if(message_set_bytes(*mout, bmsg, len) == IERROR){
+        mem_free(bmsg);
+        GOTOENDRC(IERROR, ksap23_join_mem);
+      }
     }
+    mem_free(bmsg);
+    bmsg = NULL;
+
+    pi = NULL;
+
     
   } else { /* Third (last) message of interactive protocol */
 
@@ -240,8 +257,65 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
     if (pbcext_element_GT_cmp(e1, e2)) rc = IERROR;
     
   }
+  
+  ksap23_join_mem_end:
 
- ksap23_join_mem_end:
+  if (rc == IERROR) {
+    if (pi) { 
+      spk_rep_free(pi); 
+      pi = NULL; 
+    }
+
+    if (seq == 1) {
+      if (ksap23_memkey->alpha) {
+        pbcext_element_Fr_free(ksap23_memkey->alpha);
+        ksap23_memkey->alpha = NULL;
+      }
+      if (ksap23_memkey->f1) {
+        pbcext_element_G1_free(ksap23_memkey->f1);
+        ksap23_memkey->f1 = NULL;
+      }
+      if (ksap23_memkey->f2) {
+        pbcext_element_G1_free(ksap23_memkey->f2);
+        ksap23_memkey->f2 = NULL;
+      }
+      if (ksap23_memkey->u) {
+        pbcext_element_G1_free(ksap23_memkey->u);
+        ksap23_memkey->u = NULL;
+      }
+      if (ksap23_memkey->w) {
+        pbcext_element_G1_free(ksap23_memkey->w);
+        ksap23_memkey->w = NULL;
+      }
+    }
+    if (seq == 3) {
+      if (ksap23_memkey->v) {
+        pbcext_element_G1_free(ksap23_memkey->v);
+        ksap23_memkey->v = NULL;
+      }
+    }
+  }
+
+  // Uvoľnenie zvyšných premenných
+  if (pi) { spk_rep_free(pi); pi = NULL; }
+  if (bn) { mem_free(bn); bn = NULL; }
+  if (bw) { mem_free(bw); bw = NULL; }
+  if (bu) { mem_free(bu); bu = NULL; }
+  if (bf1) { mem_free(bf1); bf1 = NULL; }
+  if (bf2) { mem_free(bf2); bf2 = NULL; }
+  if (bmsg) { mem_free(bmsg); bmsg = NULL; }
+  if (h) { hash_free(h); h = NULL; }
+  if (tau) { pbcext_element_GT_free(tau); tau = NULL; }
+  if (e1) { pbcext_element_GT_free(e1); e1 = NULL; }
+  if (e2) { pbcext_element_GT_free(e2); e2 = NULL; }
+  if (e3) { pbcext_element_GT_free(e3); e3 = NULL; }
+  if (n) { pbcext_element_G1_free(n); n = NULL; }
+  if (f) { pbcext_element_G1_free(f); f = NULL; }
+  if (bpi) { mem_free(bpi); bpi = NULL; }
+
+  return rc;
+}
+ /*ksap23_join_mem_end:
 
   if (rc == IERROR) {
     if (seq == 1) {
@@ -303,6 +377,6 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
 
   return rc;
 
-}
+}*/
 
 /* join_mem.c ends here */

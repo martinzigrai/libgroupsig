@@ -87,6 +87,9 @@ int ksap23_join_mgr(message_t **mout,
   uint8_t ok;
   int rc;
   uint16_t i[8][2], prods[6];  
+  pbcext_element_G1_t *u_tmp = NULL, *w_tmp = NULL;
+  pbcext_element_G1_t *u_comp = NULL;
+  
 
   if((seq != 0 && seq != 2) ||
      !mout || !gml || gml->scheme != GROUPSIG_ksap23_CODE ||
@@ -117,7 +120,8 @@ int ksap23_join_mgr(message_t **mout,
     
     if(!*mout) {   
       if(!(_mout = message_from_bytes(bn, len))) {
-	GOTOENDRC(IERROR, ksap23_join_mgr);
+        mem_free(bn);
+	      GOTOENDRC(IERROR, ksap23_join_mgr);
       }
 
       *mout = _mout;
@@ -125,10 +129,13 @@ int ksap23_join_mgr(message_t **mout,
     } else {
 
       _mout = *mout;
-      if(message_set_bytes(*mout, bn, len) == IERROR)
-	GOTOENDRC(IERROR, ksap23_join_mgr);
-      
+      if(message_set_bytes(*mout, bn, len) == IERROR){
+        mem_free(bn);
+	      GOTOENDRC(IERROR, ksap23_join_mgr);
+      }
     }
+    mem_free(bn); 
+    bn = NULL;
     
   } else { /* Third step */
 
@@ -172,27 +179,29 @@ int ksap23_join_mgr(message_t **mout,
       GOTOENDRC(IERROR, ksap23_join_mgr);
     if(hash_finalize(h) == IERROR)
       GOTOENDRC(IERROR, ksap23_join_mgr);
-    if(!(u = pbcext_element_G1_init()))
+    if(!(u_comp = pbcext_element_G1_init()))
       GOTOENDRC(IERROR, ksap23_join_mgr);
-    if(pbcext_element_G1_from_hash(u, h->hash, h->length) == IERROR)
-      GOTOENDRC(IERROR, ksap23_join_mgr);    
+    if(pbcext_element_G1_from_hash(u_comp, h->hash, h->length) == IERROR)
+      GOTOENDRC(IERROR, ksap23_join_mgr);   
 
     if (ksap23_nizk1_verify(&ok, pi, 
           ksap23_grpkey->g, 
           ksap23_grpkey->h, 
-          u, f1, f2, w) == IERROR) {
+          u_comp, f1, f2, w) == IERROR) {
       GOTOENDRC(IERROR, ksap23_join_mgr);
     }
     if (!ok) GOTOENDRC(IERROR, ksap23_join_mgr);
         
+    if (!(u_tmp = pbcext_element_G1_init())) GOTOENDRC(IERROR, ksap23_join_mgr);
+    if (!(w_tmp = pbcext_element_G1_init())) GOTOENDRC(IERROR, ksap23_join_mgr);
 
     if (!(v = pbcext_element_G1_init()))
       GOTOENDRC(IERROR, ksap23_join_mgr);
-    if (pbcext_element_G1_mul(w, w, ksap23_mgrkey->y) == IERROR)
+    if (pbcext_element_G1_mul(w_tmp, w, ksap23_mgrkey->y) == IERROR)
       GOTOENDRC(IERROR, ksap23_join_mgr);
-    if (pbcext_element_G1_mul(u, u, ksap23_mgrkey->x) == IERROR)
+    if (pbcext_element_G1_mul(u_tmp, u, ksap23_mgrkey->x) == IERROR)
       GOTOENDRC(IERROR, ksap23_join_mgr);
-    if (pbcext_element_G1_add(v, u, w) == IERROR)
+    if (pbcext_element_G1_add(v, u_tmp, w_tmp) == IERROR)
       GOTOENDRC(IERROR, ksap23_join_mgr);    
 
     /*NEW Add the tuple (i,f1,f2,u,w,pi,sigmads) to the GML NEW*/
@@ -226,49 +235,73 @@ int ksap23_join_mgr(message_t **mout,
     if(!*mout) {
       
       if(!(_mout = message_from_bytes(bv, len)))
-	GOTOENDRC(IERROR, ksap23_join_mgr);
+      {
+        mem_free(bv);
+        GOTOENDRC(IERROR, ksap23_join_mgr);
+      }
+	
       *mout = _mout;
 
     } else {
 
       _mout = *mout;
-      if(message_set_bytes(_mout, bv, len) == IERROR)
-	GOTOENDRC(IERROR, ksap23_join_mgr);
-
-    }    
+      if(message_set_bytes(_mout, bv, len) == IERROR){
+        mem_free(bv);
+        GOTOENDRC(IERROR, ksap23_join_mgr);
+      }
+    }  
+    mem_free(bv); 
+    bv = NULL;
     
   }
   
  ksap23_join_mgr_end:
 
-  if (rc == IERROR) {
+  if (rc == IERROR) { 
+    if (ksap23_entry) { 
+      ksap23_gml_entry_free(ksap23_entry);
+       ksap23_entry = NULL;
+      }
+
+    if (pi) { 
+      spk_rep_free(pi); 
+      pi = NULL; 
+    }
+  }
+
+  if (!ksap23_entry){
     if (f1) { pbcext_element_G1_free(f1); f1 = NULL; }
     if (f2) { pbcext_element_G1_free(f2); f2 = NULL; }
-    if (u) { pbcext_element_G1_free(u); u = NULL; }
-    if (w) { pbcext_element_G1_free(w); w = NULL; } 
-    if (v) { pbcext_element_G1_free(v); v = NULL; }   
-    if (tau) { pbcext_element_GT_free(tau); tau = NULL; }  
-    if (ksap23_entry) { ksap23_gml_entry_free(ksap23_entry); ksap23_entry = NULL; }
+    if (u)  { pbcext_element_G1_free(u);  u = NULL; }
+    if (w)  { pbcext_element_G1_free(w);  w = NULL; }
   }
 
   if (n) { pbcext_element_G1_free(n); n = NULL; }
-  //if (f) { pbcext_element_G1_free(f); f = NULL; }  
-  //if (u) { pbcext_element_G1_free(u); u = NULL; }
   if (v) { pbcext_element_G1_free(v); v = NULL; }
-  if (w) { pbcext_element_G1_free(w); w = NULL; }
+  if (tau) { pbcext_element_GT_free(tau); tau = NULL; } 
+  
   if (h) { hash_free(h); h = NULL; }
-  if (pi) { spk_rep_free(pi); pi = NULL; }
-  if (bn) { mem_free(bn); bn = NULL; }
-  //if (bf) { mem_free(bf); bf = NULL; }  
+  //if (pi) { spk_rep_free(pi); pi = NULL; }
+
+  if (bn) { mem_free(bn); bn = NULL; }  
   if (bv) { mem_free(bv); bv = NULL; }
   if (bw) { mem_free(bw); bw = NULL; }
   if (bu) { mem_free(bu); bu = NULL; }
   if (bf1) { mem_free(bf1); bf1 = NULL; }
   if (bf2) { mem_free(bf2); bf2 = NULL; }
-  
 
+  if (u_tmp) { pbcext_element_G1_free(u_tmp); u_tmp = NULL; }
+  if (u_comp) { pbcext_element_G1_free(u_comp); u_comp = NULL; }
+  if (w_tmp) { pbcext_element_G1_free(w_tmp); w_tmp = NULL; }
 
-
+  //if (f) { pbcext_element_G1_free(f); f = NULL; }  
+  //if (u) { pbcext_element_G1_free(u); u = NULL; }
+  //if (f1) { pbcext_element_G1_free(f1); f1 = NULL; }
+  //if (f2) { pbcext_element_G1_free(f2); f2 = NULL; }
+  //if (u) { pbcext_element_G1_free(u); u = NULL; }
+  //if (w) { pbcext_element_G1_free(w); w = NULL; }
+  //if (w) { pbcext_element_G1_free(w); w = NULL; }
+  //if (bf) { mem_free(bf); bf = NULL; }
   
   return rc;
 

@@ -275,16 +275,18 @@ int ksap23_snizk2_sign(spk_rep_t *pi,
       GOTOENDRC(IERROR, ksap23_snizk2_sign);
     if (pbcext_element_G1_add(com3, temp, com3) == IERROR)
       GOTOENDRC(IERROR, ksap23_snizk2_sign); 
-    pbcext_element_G1_free(temp);
+    pbcext_element_G1_free(temp); temp = NULL;
     
     // com4 = h^k1 * D2^k2
+    if (!(temp = pbcext_element_G1_init()))
+      GOTOENDRC(IERROR, ksap23_snizk2_sign);
     if (pbcext_element_G1_mul(temp, h, k1) == IERROR)
       GOTOENDRC(IERROR, ksap23_snizk2_sign);
     if (pbcext_element_G1_mul(com4, D2, k2) == IERROR)
       GOTOENDRC(IERROR, ksap23_snizk2_sign);
     if (pbcext_element_G1_add(com4, temp, com4) == IERROR)
       GOTOENDRC(IERROR, ksap23_snizk2_sign); 
-    pbcext_element_G1_free(temp);
+    pbcext_element_G1_free(temp); temp = NULL;
 
     /* 3. Hashovanie  */
     if (!(hc = hash_init(HASH_BLAKE2))) GOTOENDRC(IERROR, ksap23_snizk2_sign);
@@ -297,7 +299,8 @@ int ksap23_snizk2_sign(spk_rep_t *pi,
     //if(pbcext_element_G1_to_bytes(&bg, &len, elements[i]) == IERROR)
     if(pbcext_element_G1_to_bytes(&bg, &len, (pbcext_element_G1_t *) elements[i]) == IERROR)
         GOTOENDRC(IERROR, ksap23_snizk2_sign);
-    if(hash_update(hc, bg, len) == IERROR) GOTOENDRC(IERROR, ksap23_snizk2_sign);
+    if(hash_update(hc, bg, len) == IERROR)
+     GOTOENDRC(IERROR, ksap23_snizk2_sign);
     mem_free(bg); bg = NULL;  
     }
     
@@ -375,6 +378,11 @@ int ksap23_snizk2_verify(uint8_t *ok,
         LOG_EINVAL(&logger, __FILE__, "snizk2_verify", __LINE__, LOGERROR);
         return IERROR;
     }
+
+    if (!(com1 = pbcext_element_G1_init())) GOTOENDRC(IERROR, ksap23_snizk2_verify);
+    if (!(com2 = pbcext_element_G1_init())) GOTOENDRC(IERROR, ksap23_snizk2_verify);
+    if (!(com3 = pbcext_element_G1_init())) GOTOENDRC(IERROR, ksap23_snizk2_verify);
+    if (!(com4 = pbcext_element_G1_init())) GOTOENDRC(IERROR, ksap23_snizk2_verify);
 
     /* 1. Rekonstrukcia kommitmentov */
     // com1 = tilde_u^s1 * tilde_w^c
@@ -512,119 +520,96 @@ int ksap23_nizk3_sign(spk_rep_t *pi,
         !(t2 = pbcext_element_G1_init()) ||
         !(t3 = pbcext_element_G1_init()) ||
         !(t4 = pbcext_element_G1_init()) ||
-        !(k1 = pbcext_element_Fr_init()) ||   // Náhodné k1, k2 ∈ Zp
+        !(k1 = pbcext_element_Fr_init()) ||
         !(k2 = pbcext_element_Fr_init())) {
         GOTOENDRC(IERROR, ksap23_nizk3_sign);
     }
 
-    if (pbcext_element_Fr_random(k1) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-    if (pbcext_element_Fr_random(k2) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-
-    /* Krok 1: Výpočet c1/f1 a c2/f2 v G1 */
-    if (!(f1_inv = pbcext_element_G1_init()))
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-    if (pbcext_element_G1_neg(f1_inv, f1) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-    if (pbcext_element_G1_add(c1_f1_inv, c1, f1_inv) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);  
-
-    if (!(f2_inv = pbcext_element_G1_init()))
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-    if (pbcext_element_G1_neg(f2_inv, f2) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-    if (pbcext_element_G1_add(c2_f2_inv, c2, f2_inv) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);    
-    
-    /*if (pbcext_element_G1_mul(c1_f1_inv, c1, f1) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-    if (pbcext_element_G1_neg(c1_f1_inv, c1_f1_inv) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-
-    if (pbcext_element_G1_mul(c2_f2_inv, c2, f2) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-    if (pbcext_element_G1_neg(c2_f2_inv, c2_f2_inv) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);*/
-
-    /* Krok 2: Generovanie komitmentov */
-    // t1 = (c1/f1)^k1
-    if (pbcext_element_G1_mul(t1, c1_f1_inv, k1) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-
-    // t2 = g^k1
-    if (pbcext_element_G1_mul(t2, g, k1) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-
-    // (c2 * f2^{-1})^k2
-    // t3 = (c2/f2)^k2
-    if (pbcext_element_G1_mul(t3, c2_f2_inv, k2) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-
-    // t4 = g^k2
-    if (pbcext_element_G1_mul(t4, g, k2) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-
-    /* Krok 3: Hashovanie pre výzvu c */
-    if(!(hc = hash_init(HASH_BLAKE2))) GOTOENDRC(IERROR, ksap23_nizk3_sign);
-
-    // Hashuje sa Y = (g, c0, c1, c2, f1, f2, D1, D2, t1, t2, t3, t4)
-    const pbcext_element_G1_t *elements[] = {g, c0, c1, c2, f1, f2, D1, D2, t1, t2, t3, t4};
-    for (int i = 0; i < 12; i++) {
-      //if(pbcext_element_G1_to_bytes(&bg, &len, elements[i]) == IERROR)
-      if(pbcext_element_G1_to_bytes(&bg, &len, (pbcext_element_G1_t *) elements[i]) == IERROR)
+    if (pbcext_element_Fr_random(k1) == IERROR ||
+        pbcext_element_Fr_random(k2) == IERROR) {
         GOTOENDRC(IERROR, ksap23_nizk3_sign);
-      if(hash_update(hc, bg, len) == IERROR) GOTOENDRC(IERROR, ksap23_nizk3_sign);
-      mem_free(bg); bg = NULL; 
     }
 
-    // Pridanie správy m
-    if(hash_update(hc, m, m_len) == IERROR) GOTOENDRC(IERROR, ksap23_nizk3_sign);
+    if (!(f1_inv = pbcext_element_G1_init()) ||
+        pbcext_element_G1_neg(f1_inv, f1) == IERROR ||
+        pbcext_element_G1_add(c1_f1_inv, c1, f1_inv) == IERROR ||
+        !(f2_inv = pbcext_element_G1_init()) ||
+        pbcext_element_G1_neg(f2_inv, f2) == IERROR ||
+        pbcext_element_G1_add(c2_f2_inv, c2, f2_inv) == IERROR) {
+        GOTOENDRC(IERROR, ksap23_nizk3_sign);  
+    }
 
-    /* Krok 4: Výpočet výziev a odpovedí */
-    // c = H(Y, t1, t2, t3, t4, m)
-    if(hash_finalize(hc) == IERROR) GOTOENDRC(IERROR, ksap23_nizk3_sign);
+    // t1 = c0 * k1
+    if (pbcext_element_G1_mul(t1, c0, k1) == IERROR)
+    GOTOENDRC(IERROR, ksap23_nizk3_sign);
 
-    if (!(pi->c = pbcext_element_Fr_init()))
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-    if (pbcext_element_Fr_from_hash(pi->c, hc->hash, hc->length) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
+    // t2 = g * k1
+    if (pbcext_element_G1_mul(t2, g, k1) == IERROR)
+    GOTOENDRC(IERROR, ksap23_nizk3_sign);
 
-    // s1 = k1 - c * d1
-    if (!(s1 = pbcext_element_Fr_init()))
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-    if (pbcext_element_Fr_mul(s1, pi->c, d1) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-    if (!(pi->s[0] = pbcext_element_Fr_init()))
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-    if (pbcext_element_Fr_sub(pi->s[0], k1, s1) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
+    // t3 = c0 * k2
+    if (pbcext_element_G1_mul(t3, c0, k2) == IERROR)
+    GOTOENDRC(IERROR, ksap23_nizk3_sign);
 
+    // t4 = g * k2
+    if (pbcext_element_G1_mul(t4, g, k2) == IERROR)
+    GOTOENDRC(IERROR, ksap23_nizk3_sign);
 
-    // s2 = k2 - c * d2
-    if (!(s2 = pbcext_element_Fr_init()))
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-    if (pbcext_element_Fr_mul(s2, pi->c, d2) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-    if (!(pi->s[1] = pbcext_element_Fr_init()))
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
-    if (pbcext_element_Fr_sub(pi->s[1], k2, s2) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_sign);
+    if (!(hc = hash_init(HASH_BLAKE2))) GOTOENDRC(IERROR, ksap23_nizk3_sign);
+    
+    const pbcext_element_G1_t *elements[] = {g, c0, c1, c2, f1, f2, D1, D2, t1, t2, t3, t4};
+    for (int i = 0; i < 12; i++) {
+        /*if (pbcext_element_G1_to_bytes(&bg, &len, (pbcext_element_G1_t *) elements[i]) == IERROR ||
+            hash_update(hc, bg, len) == IERROR) {
+            mem_free(bg);
+            GOTOENDRC(IERROR, ksap23_nizk3_sign);
+        }*/
+
+        if (pbcext_element_G1_to_bytes(&bg, &len, (pbcext_element_G1_t *) elements[i]) == IERROR || !bg || !len) {
+            GOTOENDRC(IERROR, ksap23_nizk3_sign);
+        }
+
+        if (hash_update(hc, bg, len) == IERROR) {
+            mem_free(bg); bg = NULL;
+            GOTOENDRC(IERROR, ksap23_nizk3_sign);
+        }
+
+        mem_free(bg); bg = NULL;
+                mem_free(bg); bg = NULL;
+            }
+
+    if (hash_update(hc, m, m_len) == IERROR ||
+        hash_finalize(hc) == IERROR) {
+        GOTOENDRC(IERROR, ksap23_nizk3_sign);
+    }
+
+    if (!(pi->c = pbcext_element_Fr_init()) ||
+        pbcext_element_Fr_from_hash(pi->c, hc->hash, hc->length) == IERROR) {
+        GOTOENDRC(IERROR, ksap23_nizk3_sign);
+    }
+
+    // s1 = k1 + c*d1, s2 = k2 + c*d2
+    if (!(s1 = pbcext_element_Fr_init()) ||
+        !(s2 = pbcext_element_Fr_init()) ||
+        pbcext_element_Fr_mul(s1, pi->c, d1) == IERROR ||
+        pbcext_element_Fr_mul(s2, pi->c, d2) == IERROR ||
+        !(pi->s[0] = pbcext_element_Fr_init()) ||
+        !(pi->s[1] = pbcext_element_Fr_init()) ||
+        pbcext_element_Fr_add(pi->s[0], k1, s1) == IERROR || 
+        pbcext_element_Fr_add(pi->s[1], k2, s2) == IERROR) {
+        GOTOENDRC(IERROR, ksap23_nizk3_sign);
+    }
 
 ksap23_nizk3_sign_end:
     
-    if (c1_f1_inv) pbcext_element_G1_free(c1_f1_inv);
-    if (c2_f2_inv) pbcext_element_G1_free(c2_f2_inv);
-    if (f1_inv) pbcext_element_G1_free(f1_inv);
-    if (f2_inv) pbcext_element_G1_free(f2_inv);
-    if (t1) pbcext_element_G1_free(t1);
-    if (t2) pbcext_element_G1_free(t2);
-    if (t3) pbcext_element_G1_free(t3);
-    if (t4) pbcext_element_G1_free(t4);
-    if (k1) pbcext_element_Fr_free(k1);
-    if (k2) pbcext_element_Fr_free(k2);
-    if (hc) hash_free(hc);
-    if (bg) mem_free(bg);
+    pbcext_element_G1_free(c1_f1_inv); pbcext_element_G1_free(c2_f2_inv);
+    pbcext_element_G1_free(f1_inv); pbcext_element_G1_free(f2_inv);
+    pbcext_element_G1_free(t1); pbcext_element_G1_free(t2);
+    pbcext_element_G1_free(t3); pbcext_element_G1_free(t4);
+    pbcext_element_Fr_free(k1); pbcext_element_Fr_free(k2);
+    pbcext_element_Fr_free(s1); pbcext_element_Fr_free(s2);
+    hash_free(hc); mem_free(bg);
+    
     
     return rc;
 }
@@ -644,7 +629,7 @@ int ksap23_nizk3_verify(uint8_t *ok,
 
     pbcext_element_G1_t *t1 = NULL, *t2 = NULL, *t3 = NULL, *t4 = NULL;
     pbcext_element_G1_t *c1_f1_inv = NULL, *c2_f2_inv = NULL, *f1_inv = NULL, *f2_inv = NULL;
-    pbcext_element_G1_t *temp = NULL;
+    pbcext_element_G1_t *temp1 = NULL, *temp2 = NULL;
     hash_t *hc = NULL;
     byte_t *bg = NULL;
     size_t len;
@@ -657,127 +642,83 @@ int ksap23_nizk3_verify(uint8_t *ok,
 
     if (!(c1_f1_inv = pbcext_element_G1_init()) ||
         !(c2_f2_inv = pbcext_element_G1_init()) ||
-        !(t1 = pbcext_element_G1_init()) ||
-        !(t2 = pbcext_element_G1_init()) ||
-        !(t3 = pbcext_element_G1_init()) ||
-        !(t4 = pbcext_element_G1_init()) ||
-        !(temp = pbcext_element_G1_init())) {
+        !(f1_inv = pbcext_element_G1_init()) ||
+        pbcext_element_G1_neg(f1_inv, f1) == IERROR ||
+        pbcext_element_G1_add(c1_f1_inv, c1, f1_inv) == IERROR ||
+        !(f2_inv = pbcext_element_G1_init()) ||
+        pbcext_element_G1_neg(f2_inv, f2) == IERROR ||
+        pbcext_element_G1_add(c2_f2_inv, c2, f2_inv) == IERROR) {
         GOTOENDRC(IERROR, ksap23_nizk3_verify);
     }
 
-    /* Výpočet c1/f1 a c2/f2 v G1 */
-    if (!(f1_inv = pbcext_element_G1_init()))
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if (pbcext_element_G1_neg(f1_inv, f1) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if (pbcext_element_G1_add(c1_f1_inv, c1, f1_inv) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);  
+    if (!(t1 = pbcext_element_G1_init()) ||
+        !(t2 = pbcext_element_G1_init()) ||
+        !(t3 = pbcext_element_G1_init()) ||
+        !(t4 = pbcext_element_G1_init()) ||
+        !(temp1 = pbcext_element_G1_init()) ||
+        !(temp2 = pbcext_element_G1_init())) {
+        GOTOENDRC(IERROR, ksap23_nizk3_verify);
+    }
 
-    if (!(f2_inv = pbcext_element_G1_init()))
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if (pbcext_element_G1_neg(f2_inv, f2) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if (pbcext_element_G1_add(c2_f2_inv, c2, f2_inv) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);     
+    // t1' = s1*c0 - c*(c1 - f1)
+    pbcext_element_G1_mul(temp1, c0, pi->s[0]);         // s1*c0
+    pbcext_element_G1_mul(temp2, c1_f1_inv, pi->c);     // c*(c1 - f1)
+    pbcext_element_G1_neg(temp2, temp2);                // -c*(c1 - f1)
+    pbcext_element_G1_add(t1, temp1, temp2);            // t1' = s1*c0 - c*(c1 - f1)
 
-    /*if (pbcext_element_G1_mul(c1_f1_inv, c1, f1) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if (pbcext_element_G1_neg(c1_f1_inv, c1_f1_inv) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
+    // t2' = s1*g - c*D1
+    pbcext_element_G1_mul(temp1, g, pi->s[0]);          // s1*g
+    pbcext_element_G1_mul(temp2, D1, pi->c);            // c*D1
+    pbcext_element_G1_neg(temp2, temp2);                // -c*D1
+    pbcext_element_G1_add(t2, temp1, temp2);            // t2' = s1*g - c*D1
 
-    if (pbcext_element_G1_mul(c2_f2_inv, c2, f2) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if (pbcext_element_G1_neg(c2_f2_inv, c2_f2_inv) == IERROR) 
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);*/
+    // t3' = s2*c0 - c*(c2 - f2)
+    pbcext_element_G1_mul(temp1, c0, pi->s[1]);         // s2*c0
+    pbcext_element_G1_mul(temp2, c2_f2_inv, pi->c);     // c*(c2 - f2)
+    pbcext_element_G1_neg(temp2, temp2);                // -c*(c2 - f2)
+    pbcext_element_G1_add(t3, temp1, temp2);            // t3' = s2*c0 - c*(c2 - f2)
 
-    /* Rekonštrukcia komitmentov t1-t4 */ 
-    // t1 = (c1/f1)^s1 * c0^{c}
-    if (pbcext_element_G1_mul(temp, c1_f1_inv, pi->s[0]) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if (pbcext_element_G1_mul(t1, c0, pi->c) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if(pbcext_element_G1_add(t1, temp, t1) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
+    // t4' = s2*g - c*D2
+    pbcext_element_G1_mul(temp1, g, pi->s[1]);          // s2*g
+    pbcext_element_G1_mul(temp2, D2, pi->c);            // c*D2
+    pbcext_element_G1_neg(temp2, temp2);                // -c*D2
+    pbcext_element_G1_add(t4, temp1, temp2);            // t4' = s2*g - c*D2
 
-    // t2 = D1^s1 * g^c
-    if (pbcext_element_G1_mul(temp, D1, pi->s[0]) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if (pbcext_element_G1_mul(t2, g, pi->c) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if(pbcext_element_G1_add(t2, temp, t2) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-
-    // t3 = (c2/f2)^s2 * c0^{c}
-    if (pbcext_element_G1_mul(temp, c2_f2_inv, pi->s[1]) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if (pbcext_element_G1_mul(t3, c0, pi->c) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if(pbcext_element_G1_add(t3, temp, t3) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-
-    // t4 = D2^s2 * g^c
-    if (pbcext_element_G1_mul(temp, D2, pi->s[1]) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if (pbcext_element_G1_mul(t4, g, pi->c) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    if(pbcext_element_G1_add(t4, temp, t4) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-
-    /* Hashovanie všetkých prvkov a správy */
-    if(!(hc = hash_init(HASH_BLAKE2))) GOTOENDRC(IERROR, ksap23_nizk3_verify);
-
-    // Zoznam prvkov: Y = (g, c0, c1, c2, f1, f2, D1, D2)
+    if (!(hc = hash_init(HASH_BLAKE2))) GOTOENDRC(IERROR, ksap23_nizk3_verify);
+    
     const pbcext_element_G1_t *elements[] = {g, c0, c1, c2, f1, f2, D1, D2, t1, t2, t3, t4};
     for (int i = 0; i < 12; i++) {
-        //if(pbcext_element_G1_to_bytes(&bg, &len, elements[i]) == IERROR)
-        if(pbcext_element_G1_to_bytes(&bg, &len, (pbcext_element_G1_t *) elements[i]) == IERROR)
+        if (pbcext_element_G1_to_bytes(&bg, &len, (pbcext_element_G1_t *) elements[i]) == IERROR ||
+            hash_update(hc, bg, len) == IERROR) {
+            mem_free(bg);
             GOTOENDRC(IERROR, ksap23_nizk3_verify);
-        if(hash_update(hc, bg, len) == IERROR){
-          mem_free(bg);
-          GOTOENDRC(IERROR, ksap23_nizk3_verify);
-        } 
-        mem_free(bg); bg = NULL;  
+        }
+        mem_free(bg); bg = NULL;
     }
 
-    // Pridanie správy do hashu
-    if(hash_update(hc, m, m_len) == IERROR) GOTOENDRC(IERROR, ksap23_nizk3_verify);
-
-    /* Výpočet a porovnanie výziev */
-    //pbcext_element_Fr_t *c_verif = pbcext_element_Fr_init();
-
-    pbcext_element_Fr_t *c_verif;
-    if (!(c_verif = pbcext_element_Fr_init()))
-     GOTOENDRC(IERROR, ksap23_nizk3_verify);
-    /*if(c_verif = pbcext_element_Fr_init() == IERROR) GOTOENDRC(IERROR, ksap23_nizk3_verify);*/
-
-    if(hash_finalize(hc) == IERROR) GOTOENDRC(IERROR, ksap23_nizk3_verify);
-
-    //pbcext_element_Fr_from_hash(c_verif, hc->hash, hc->length);
-
-    if (pbcext_element_Fr_from_hash(c_verif, hc->hash, hc->length) == IERROR)
-      GOTOENDRC(IERROR, ksap23_nizk3_verify);
-
-    
-    if(pbcext_element_Fr_cmp(c_verif, pi->c)) { 
-      *ok = 0;
-    } else {
-      *ok = 1;
+    if (hash_update(hc, m, m_len) == IERROR ||
+        hash_finalize(hc) == IERROR) {
+        GOTOENDRC(IERROR, ksap23_nizk3_verify);
     }
+
+    /* Porovnanie výziev */
+    pbcext_element_Fr_t *c_verif = NULL;
+    if (!(c_verif = pbcext_element_Fr_init()) ||
+        pbcext_element_Fr_from_hash(c_verif, hc->hash, hc->length) == IERROR) {
+        GOTOENDRC(IERROR, ksap23_nizk3_verify);
+    }
+
+    *ok = (pbcext_element_Fr_cmp(c_verif, pi->c) == 0) ? 1 : 0;
 
 ksap23_nizk3_verify_end:
     
-    if (c1_f1_inv) pbcext_element_G1_free(c1_f1_inv);
-    if (c2_f2_inv) pbcext_element_G1_free(c2_f2_inv);
-    if (f1_inv) pbcext_element_G1_free(f1_inv);
-    if (f2_inv) pbcext_element_G1_free(f2_inv);
-    if (t1) pbcext_element_G1_free(t1);
-    if (t2) pbcext_element_G1_free(t2);
-    if (t3) pbcext_element_G1_free(t3);
-    if (t4) pbcext_element_G1_free(t4);
-    if (temp) pbcext_element_G1_free(temp);
-    if (hc) hash_free(hc);
-    if (bg) mem_free(bg);
-    if (c_verif) pbcext_element_Fr_free(c_verif);
-
+    pbcext_element_G1_free(c1_f1_inv); pbcext_element_G1_free(c2_f2_inv);
+    pbcext_element_G1_free(f1_inv); pbcext_element_G1_free(f2_inv);
+    pbcext_element_G1_free(t1); pbcext_element_G1_free(t2);
+    pbcext_element_G1_free(t3); pbcext_element_G1_free(t4);
+    pbcext_element_Fr_free(c_verif); hash_free(hc); mem_free(bg);
+    pbcext_element_G1_free(temp1); 
+    pbcext_element_G1_free(temp2);
+    
     return rc;
 }

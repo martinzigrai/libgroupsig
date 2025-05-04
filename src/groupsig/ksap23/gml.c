@@ -274,16 +274,29 @@ int ksap23_gml_entry_free(gml_entry_t *entry) {
   data = (ksap23_gml_entry_data_t *) entry->data;
 
   if (data) {
-    if (data->f1) { rc = pbcext_element_G1_free(data->f1); data->f1 = NULL; }
+    if (data->f1) { rc |= pbcext_element_G1_free(data->f1); data->f1 = NULL; }
+    if (data->f2) { rc |= pbcext_element_G1_free(data->f2); data->f2 = NULL; }
+    if (data->u)  { rc |= pbcext_element_G1_free(data->u);  data->u  = NULL; }
+    if (data->w)  { rc |= pbcext_element_G1_free(data->w);  data->w  = NULL; }
+    if (data->pi) { rc |= spk_rep_free(data->pi);           data->pi = NULL; }
+
+    /*if (data->f1) { pbcext_element_G1_free(data->f1); data->f1 = NULL; }
+    if (data->f2) { pbcext_element_G1_free(data->f2); data->f2 = NULL; }
+    if (data->u) { pbcext_element_G1_free(data->u); data->u = NULL; }
+    if (data->w) { pbcext_element_G1_free(data->w); data->w = NULL; }
+    if (data->pi) { spk_rep_free(data->pi); data->pi = NULL; }*/
+
+
+    /*if (data->f1) { rc = pbcext_element_G1_free(data->f1); data->f1 = NULL; }
     if (data->f2) { rc = pbcext_element_G1_free(data->f2); data->f2 = NULL; }
     if (data->u) { rc = pbcext_element_G1_free(data->u); data->u = NULL; }
     if (data->w) { rc = pbcext_element_G1_free(data->w); data->w = NULL; }
-    if (data->pi) { rc = spk_rep_free(data->pi); data->pi = NULL; }
+    if (data->pi) { rc = spk_rep_free(data->pi); data->pi = NULL; }*/
     
     mem_free(entry->data); entry->data = NULL;
   }
   
-  mem_free(entry); entry = NULL;
+  mem_free(entry); //entry = NULL;
 
   if (rc) rc = IERROR;
   return rc;
@@ -292,7 +305,7 @@ int ksap23_gml_entry_free(gml_entry_t *entry) {
 
 int ksap23_gml_entry_get_size(gml_entry_t *entry) {
 
-  uint64_t sf1, sf2, su, sw, spi;
+  uint64_t sf1, sf2, su, sw, ss, sc; //spi;
   
   if (!entry) {
     LOG_EINVAL(&logger, __FILE__, "ksap23_gml_entry_get_size", __LINE__, LOGERROR);
@@ -311,12 +324,16 @@ int ksap23_gml_entry_get_size(gml_entry_t *entry) {
   if (pbcext_element_G1_byte_size(&sw) == -1)
     return -1;  
 
-  if (pbcext_element_G1_byte_size(&spi) == -1)
+  if (pbcext_element_Fr_byte_size(&ss) == -1)
     return -1;
+    
+  if (pbcext_element_Fr_byte_size(&sc) == -1)
+    return -1;
+  
 
-  if (sf1 + sf2 + su + sw + spi > INT_MAX) return -1;
+  if (sf1 + sf2 + su + sw + ss + sc > INT_MAX) return -1;
 
-  return (int) sf1 + sf2 + su + sw + spi + sizeof(int)*5;
+  return (int) sf1 + sf2 + su + sw + ss + sc + sizeof(int)*6;
   
 }
 

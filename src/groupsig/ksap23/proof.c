@@ -35,30 +35,76 @@
  
 groupsig_proof_t* ksap23_proof_init() {
 
-    ksap23_proof_t *ksap23_proof; //= NULL;
-    groupsig_proof_t *proof; // = NULL;
+    groupsig_proof_t *proof;
+    ksap23_proof_t *ksap23_proof;
+    
+
+    ksap23_proof = NULL;
+
+     /* Initialize the signature contents */
+    if(!(proof = (groupsig_proof_t *) mem_malloc(sizeof(groupsig_proof_t)))) {
+      LOG_ERRORCODE(&logger, __FILE__, "ksap23_proof_init", __LINE__, errno, 
+        LOGERROR);
+    }
+
+    if(!(ksap23_proof = (ksap23_proof_t *) mem_malloc(sizeof(ksap23_proof_t)))) {
+      LOG_ERRORCODE(&logger, __FILE__, "ksap23_proof_init", __LINE__, errno, 
+        LOGERROR);
+      return NULL;
+    }
+
+    proof->scheme = GROUPSIG_ksap23_CODE;
+    proof->proof = ksap23_proof;
+
+    return proof;
     
     //int rc = IOK;
     
-    if(!(proof = mem_malloc(sizeof(groupsig_proof_t)))) {
+    /*if(!(proof = mem_malloc(sizeof(groupsig_proof_t)))) {
+        //printf("Proof je prvy NULL");
         return NULL;
         //GOTOENDRC(IERROR, ksap23_proof_init);
     }
 
-    if(!(proof->proof = mem_malloc(sizeof(ksap23_proof_t)))) {
+    if(!(ksap23_proof = mem_malloc(sizeof(ksap23_proof_t)))) {
+      //printf("Proof je prvy NULL");
         mem_free(proof); proof = NULL;
         return NULL;
         //GOTOENDRC(IERROR, ksap23_proof_init);
     }
 
-    proof->scheme = GROUPSIG_ksap23_CODE;
-    ksap23_proof = proof->proof;
 
     ksap23_proof->pi = NULL;
     ksap23_proof->f1 = NULL;
     ksap23_proof->f2 = NULL;
 
-    return proof;
+    if (!(ksap23_proof->pi = spk_rep_init(2)) ||
+        !(ksap23_proof->f1 = pbcext_element_G1_init()) ||
+        !(ksap23_proof->f2 = pbcext_element_G1_init())) {
+        
+        if (ksap23_proof->pi) spk_rep_free(ksap23_proof->pi);
+        if (ksap23_proof->f1) pbcext_element_G1_free(ksap23_proof->f1);
+        if (ksap23_proof->f2) pbcext_element_G1_free(ksap23_proof->f2);
+        mem_free(ksap23_proof);
+        mem_free(proof);
+        return NULL;
+    }
+
+    /*if (!ksap23_proof->pi || !ksap23_proof->f1 || !ksap23_proof->f2) {
+        ksap23_proof_free(proof); // Uvoľnenie čiastočne alokovanej pamäte
+        return NULL;
+    }
+
+    if(proof == NULL){
+      printf("Proof je NULL");
+    } else {
+      printf("proof nie je null");
+    }
+
+    proof->scheme = GROUPSIG_ksap23_CODE;
+    proof->proof = ksap23_proof;
+
+    return proof;*/
 
 }
 
@@ -66,7 +112,34 @@ int ksap23_proof_free(groupsig_proof_t *proof) {
     //if (!proof) return IOK;
     ksap23_proof_t *ksap23_proof;
 
-    if (!proof) {
+    if(!proof || proof->scheme != GROUPSIG_ksap23_CODE) {
+      LOG_EINVAL_MSG(&logger, __FILE__, "ksap23_proof_free", __LINE__,
+         "Nothing to free.", LOGWARN);    
+      return IOK;
+    }
+
+    if(proof->proof) {
+      ksap23_proof = proof->proof;
+      if(ksap23_proof->f1) {
+        pbcext_element_G1_free(ksap23_proof->f1);
+        ksap23_proof->f1 = NULL;
+      }
+      if(ksap23_proof->f2) {
+        pbcext_element_G1_free(ksap23_proof->f2);
+        ksap23_proof->f2 = NULL;
+      }
+      if(ksap23_proof->pi) {
+        spk_rep_free(ksap23_proof->pi);
+        ksap23_proof->pi = NULL;
+      }
+      mem_free(ksap23_proof); ksap23_proof = NULL;
+    }
+    
+    mem_free(proof); proof = NULL;
+  
+    return IOK;
+
+    /*if (!proof) {
       LOG_EINVAL_MSG(&logger, __FILE__, "ksap23_proof_free", __LINE__,
          "Nothing to free.", LOGWARN);
       return IERROR;
@@ -75,9 +148,9 @@ int ksap23_proof_free(groupsig_proof_t *proof) {
     if(proof->scheme != GROUPSIG_ksap23_CODE) {
       LOG_EINVAL(&logger, __FILE__, "ksap23_proof_free", __LINE__, LOGERROR);
       return IERROR;	       
-    }
+    }*/
     
-    if (proof->proof) {
+    /*if (proof->proof) {
         //ksap23_proof_internal_free((ksap23_proof_t*)proof->proof);
         ksap23_proof = proof->proof;
         if(ksap23_proof->pi){
@@ -92,10 +165,11 @@ int ksap23_proof_free(groupsig_proof_t *proof) {
           pbcext_element_G1_free(ksap23_proof->f2);
           ksap23_proof->f2 = NULL;
         }
+        mem_free(ksap23_proof);
     }
     mem_free(proof); proof = NULL;
 
-    return IOK;
+    return IOK;*/
 }
 
 int ksap23_proof_export(byte_t **bytes,
@@ -311,10 +385,18 @@ int ksap23_proof_get_size(groupsig_proof_t *proof) {
         return -1;
     }*/
 
-  if(!proof || proof->scheme != GROUPSIG_ksap23_CODE) {
+  if(!proof || !proof->proof || proof->scheme != GROUPSIG_ksap23_CODE) {
+      LOG_EINVAL(&logger, __FILE__, "ksap23_proof_get_size", __LINE__, LOGERROR);
+      return -1;
+  }
+  
+  //ksap23_proof = proof->proof;
+    
+
+  /*if(!proof || proof->scheme != GROUPSIG_ksap23_CODE) {
     LOG_EINVAL(&logger, __FILE__, "ksap23_proof_get_size", __LINE__, LOGERROR);
     return -1;
-  }
+  }*/
 
   f1_len = f2_len = pi_len = 0;
   ksap23_proof = proof->proof;
@@ -324,7 +406,9 @@ int ksap23_proof_get_size(groupsig_proof_t *proof) {
      }*/
     int size = spk_rep_get_size(ksap23_proof->pi);
     if(size == IERROR) return -1;
+
     pi_len = size;
+    printf("%" PRIu64 "\n", pi_len);
   }
   if(ksap23_proof->f1) { if(pbcext_element_G1_byte_size(&f1_len) == IERROR) return -1; }
   if(ksap23_proof->f2) { if(pbcext_element_G1_byte_size(&f2_len) == IERROR) return -1; }

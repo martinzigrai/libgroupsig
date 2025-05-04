@@ -50,7 +50,7 @@ int ksap23_setup(groupsig_key_t *grpkey,
 
   ksap23_grp_key_t *gkey; 
   ksap23_mgr_key_t *mkey;
-  pbcext_element_Fr_t *inv;
+  //pbcext_element_Fr_t *inv = NULL;
   int rc;
   uint8_t call;
 
@@ -63,12 +63,13 @@ int ksap23_setup(groupsig_key_t *grpkey,
 
   gkey = grpkey->key;
   mkey = mgrkey->key;
+  
   rc = IOK;
   call = 0;
 
   byte_t *bf = NULL;
   uint64_t len;
-  hash_t *h;
+  hash_t *h = NULL;
 
   /* 
    * If the group key is "empty" (we check gkey->g for this), we interpret this
@@ -159,6 +160,9 @@ int ksap23_setup(groupsig_key_t *grpkey,
   }
   
  ksap23_setup_end:
+
+  if (bf) { mem_free(bf); bf = NULL; }
+  if (h) { hash_free(h); h = NULL; }
 
   if (rc == IERROR) {
 

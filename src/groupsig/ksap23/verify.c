@@ -81,6 +81,7 @@ int ksap23_verify(uint8_t *ok,
 
   if (!_ok) {
     *ok = 0;
+    printf("TU JE CHYBA");
     GOTOENDRC(IOK, ksap23_verify);
   }
 

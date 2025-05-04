@@ -28,7 +28,7 @@
 #include "sys/mem.h"
 #include "registered_groupsigs.h"
 
-#define GROUPSIG_REGISTERED_GROUPSIGS_N 6
+#define GROUPSIG_REGISTERED_GROUPSIGS_N 7
 static const groupsig_t *GROUPSIG_REGISTERED_GROUPSIGS[GROUPSIG_REGISTERED_GROUPSIGS_N] = {
   /* &kty04_groupsig_bundle, */
   &bbs04_groupsig_bundle,

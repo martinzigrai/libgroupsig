@@ -134,6 +134,9 @@ int ksap23_sign(groupsig_signature_t *sig,
  ksap23_sign_end:
 
   if (r) { pbcext_element_Fr_free(r); r = NULL; }
+  if (s) { pbcext_element_Fr_free(s); s = NULL; }
+  if (D1s) { pbcext_element_G1_free(D1s); D1s = NULL; }
+  if (D2s) { pbcext_element_G1_free(D2s); D2s = NULL; }
 
   if (rc == IERROR) {
     
@@ -164,7 +167,15 @@ int ksap23_sign(groupsig_signature_t *sig,
     if (ksap23_sig->pi) {
       spk_rep_free(ksap23_sig->pi);
       ksap23_sig->pi = NULL;
-    }    
+    }   
+    if (D1s) {
+      pbcext_element_G1_free(D1s);
+      D1s = NULL;
+    } 
+    if (D2s) {
+      pbcext_element_G1_free(D2s);
+      D2s = NULL;
+    } 
     
   }
   

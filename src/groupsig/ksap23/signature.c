@@ -217,7 +217,10 @@ int ksap23_signature_get_size(groupsig_signature_t *sig) {
   if(pbcext_element_Fr_byte_size(&sc) == IERROR) return -1;
   if(pbcext_element_Fr_byte_size(&ss) == IERROR) return -1;  
       
-  size64 = sizeof(uint8_t) + sizeof(int)*5 + suu + svv + sww + sc0 + sc1 + sc2 + sc + ss;
+  //size64 = sizeof(uint8_t) + sizeof(int)*5 + suu + svv + sww + sc0 + sc1 + sc2 + sc + ss;
+  size64 = sizeof(uint8_t) + 6 * (4 + suu) + 3 * (4 + ss);
+
+  
 
   if(size64 > INT_MAX) return -1;
   return (int) size64;
