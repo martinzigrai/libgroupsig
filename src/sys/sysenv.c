@@ -22,6 +22,8 @@
 #include <limits.h>
 #include <errno.h>
 #include <time.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "sysenv.h"
 #include "mem.h"
@@ -133,7 +135,7 @@ int sysenv_getrandom(void *buf, int size) {
   attempts = 0; rc = 0;
   while (attempts < MAX_GETRANDOM_ATTEMPTS) {
     errno = 0;
-    if ((rc = getrandom(buf, size, 0)) != -1) break;
+    //if ((rc = getrandom(buf, size, 0)) != -1) break;
     attempts++;
   }
 
@@ -144,6 +146,24 @@ int sysenv_getrandom(void *buf, int size) {
 		  errno, LOGERROR);    
     return IERROR;
   }
+
+#elif defined(__ANDROID__)
+  int fd = open("/dev/urandom", O_RDONLY);
+  if (fd == -1){
+    LOG_ERRORCODE(&logger, __FILE__, "sysenv_getrandom", __LINE__, 
+		  errno, LOGERROR); 
+      return IERROR;
+  }
+
+  ssize_t bytes_read = read(fd, buf, size);
+  close(fd);
+  if(bytes_read != size) {
+    LOG_ERRORCODE(&logger, __FILE__, "sysenv_getrandom", __LINE__, 
+		  errno, LOGERROR); 
+      return IERROR;
+  }
+  //return IOK;
+
   
 #elif defined(HAVE_GETRANDOM) && defined (__APPLE__)
   /* Use arc4random() */

@@ -39,7 +39,48 @@
 // CPU Cycle Difference (End - Start)
 static const char* entry_fmt_string = "%lu.%06lu\t%lu.%06lu\t%.6f\t%.6f\t%.6f\t%.6f\t%u\t%u\t%u\n";
 
-#ifdef __i386
+
+#if defined(__APPLE__)
+/* Podpora pre iOS/macOS (všetky architektúry - ARM, x86 pre simulátor) */
+#include <mach/mach_time.h>
+__inline__ uint64_t rdtsc() {
+    return mach_absolute_time(); // Najspoľahlivejší spôsob na Apple platformách
+}
+
+#elif defined(__i386__) || defined(__x86_64__)
+/* Podpora pre x86/x64 (Windows, Linux, Android-x86) */
+__inline__ uint64_t rdtsc() {
+  #if defined(__x86_64__)
+    uint64_t a, d;
+    __asm__ volatile ("rdtsc" : "=a" (a), "=d" (d));
+    return (d << 32) | a;
+  #else
+    uint64_t x;
+    __asm__ volatile ("rdtsc" : "=A" (x));
+    return x;
+  #endif
+}
+
+#elif defined(__aarch64__)
+/* Podpora pre ARM64 (Android/Linux) */
+__inline__ uint64_t rdtsc() {
+    uint64_t val;
+    __asm__ volatile("mrs %0, cntvct_el0" : "=r" (val));
+    return val;
+}
+
+#elif defined(__arm__)
+/* Podpora pre ARMv7 (môže byť problémový!) */
+__inline__ uint64_t rdtsc() {
+    uint32_t cycle_count;
+    __asm__ volatile("mrc p15, 0, %0, c9, c13, 0" : "=r"(cycle_count));
+    return cycle_count;
+}
+
+#else
+#error "Unsupported architecture for rdtsc()"
+#endif
+/*#ifdef __i386
 __inline__ uint64_t rdtsc() {
   uint64_t x;
   __asm__ volatile ("rdtsc" : "=A" (x));
@@ -51,7 +92,23 @@ __inline__ uint64_t rdtsc() {
   __asm__ volatile ("rdtsc" : "=a" (a), "=d" (d));
   return (d<<32) | a;
 }
-#endif
+
+#elif __x86_64__
+  __inline__ uint64_t rdtsc() {
+  uint64_t a, d;
+  __asm__ volatile ("rdtsc" : "=a" (a), "=d" (d));
+  return (d << 32) | a;
+}
+
+#elif defined(__aarch64__) || defined(__arm__)
+
+__inline__ uint64_t rdtsc() {
+  uint64_t val;
+  __asm__ volatile("mrs %0, cntvct_el0" : "=r" (val)); // Pre AArch64
+  // __asm__ volatile("mrrc p15, 1, %Q0, %R0, c14" : "=r" (val)); // Pre ARMv7 (menej spoľahlivé)
+  return val;
+}
+#endif*/
 
 profile_t* profile_begin(char *filename) {
 
@@ -99,7 +156,7 @@ int profile_free(profile_t *profile) {
 
 }
 
-int profile_get_time(struct timeval *tv, clock_t *clck, uint64_t *cycle) {
+int profile_get_time(struct timeval *tv, clock_t *clck, uint64_t *cycle) { 
 
   if(!tv) {
     LOG_EINVAL(&logger, __FILE__, "profile_get_time", __LINE__, LOGERROR);
@@ -120,7 +177,7 @@ int profile_get_time(struct timeval *tv, clock_t *clck, uint64_t *cycle) {
   }
 
   /* Get current clock cycle */
-  *cycle = rdtsc();
+  *cycle =  rdtsc(); 
 
   return IOK;
 
