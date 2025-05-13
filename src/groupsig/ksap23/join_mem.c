@@ -61,7 +61,7 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
   pbcext_element_GT_t *tau, *e1, *e2, *e3;  
   message_t *_mout;
   byte_t *bn, *bw, *bu, *bmsg, *bf1 ,*bf2;
-  byte_t *bpi; 
+  byte_t *bpi = NULL; 
   //void *y[6], *g[5];
   uint64_t len, nlen, f1len, f2len, wlen, ulen, offset;
   uint64_t pilen; //vsetko co suvisi s pi treba potom pridat
@@ -223,7 +223,7 @@ int ksap23_join_mem(message_t **mout, groupsig_key_t *memkey,
     mem_free(bmsg);
     bmsg = NULL;
 
-    pi = NULL;
+    //pi = NULL;
 
     
   } else { /* Third (last) message of interactive protocol */

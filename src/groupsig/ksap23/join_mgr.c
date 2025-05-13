@@ -274,6 +274,7 @@ int ksap23_join_mgr(message_t **mout,
     if (f2) { pbcext_element_G1_free(f2); f2 = NULL; }
     if (u)  { pbcext_element_G1_free(u);  u = NULL; }
     if (w)  { pbcext_element_G1_free(w);  w = NULL; }
+    if (pi) { spk_rep_free(pi); pi = NULL; } 
   }
 
   if (n) { pbcext_element_G1_free(n); n = NULL; }
